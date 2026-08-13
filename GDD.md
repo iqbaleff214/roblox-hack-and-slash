@@ -87,7 +87,7 @@ Non-combat social/menu space.
 Features:
 - **Shop NPCs/kiosks** — currency shop, gear shop, cosmetic shop, weapon dealer.
 - **Loadout/Customization station** — equip accessories, weapon, ultimate.
-- **Map Select terminal** — choose battlefield map, view recommended level, party up.
+- **Map Select terminal** — CTR-style map selection: a physical hub area/select screen where each battlefield map is represented by its own portal/icon (walk up to or click a map tile, no menu-diving). Selecting a map shows a preview panel with recommended level, party-up option, and the map's **Main Reward** (a guaranteed showcase item — e.g., a specific weapon skin, unique accessory, or exclusive gear piece tied to that map) so players can target-farm a specific map for a specific prize, not just "go fight something."
 - **Social space** — free-roam, emotes, player housing/guild hall (stretch goal), photo-mode area.
 - **Progression board** — displays level, XP bar, currency balances, battle pass progress.
 - No enemies, no damage, safe to idle/socialize.
@@ -106,6 +106,16 @@ Features:
 - Optional side objectives (rescue an ally officer, destroy siege equipment) for bonus rewards.
 - Final objective: defeat the **Final Boss** to clear the map and trigger reward payout.
 
+### 6.3 Destructible Boxes
+- Crates/barrels scattered around the battlefield (camps, roadside, near objectives), Basara-style.
+- Destroyed with any regular attack, no dedicated input needed — folds into normal combo flow.
+- Contents on break (weighted random):
+  - Soft currency
+  - Small HP/stamina restore pickup
+  - Ultimate Gauge charge
+  - Rare gear/cosmetic chance (low odds, jackpot feel)
+- Respawn per map instance only (not farmable by repeatedly re-entering same run); fixed placements plus a few random spawn points per playthrough to keep exploration relevant.
+
 ---
 
 ## 7. Enemy System (Basara-style Hierarchy)
@@ -116,6 +126,20 @@ Four-tier enemy hierarchy, matching Sengoku Basara's mob structure:
 - Weakest, spawn in large numbers/waves.
 - Simple attack patterns, low HP, meant to be mowed down in combos for power-fantasy feel.
 - Primary XP/currency drip-feed source.
+- Multiple variants mixed into spawn waves so groups aren't just visual reskins — each forces a different read/response from the player.
+
+| Variant | Behavior | Threat/Role |
+|---|---|---|
+| **Swordsman** | Basic melee swing, short windup | Baseline filler, safe to combo through |
+| **Spearman** | Melee thrust with slightly longer reach | Punishes standing still at combo range |
+| **Shield Bearer** | Blocks frontal hits, must be hit from side/back or staggered | Combo-flow interrupt, forces positioning |
+| **Rock/Javelin Thrower** | Ranged, lobs projectiles from range, retreats when approached | Forces player to close distance or dodge incoming, breaks turtling |
+| **Bomber** | Carries a bomb, rushes player and detonates (AoE) or lobs bomb at telegraphed spot | High-priority kill-on-sight, punishes ignoring it, rewards ranged/ultimate interrupt |
+| **Swinger/Berserker** | Wide sweeping melee swing, hits multiple targets in an arc (dangerous in co-op clumps) | Area-denial, discourages balling up |
+| **Treasure Carrier** | Passive/fleeing, no attack (or very weak), drops bonus loot/currency on kill | Optional greed-vs-efficiency choice, rewards map awareness |
+
+- Variant mix is tuned per map/wave (e.g., later waves add more Bombers/Shield Bearers to raise difficulty without just adding HP).
+- Same variant concept can extend upward: Commanders can have variant flavors too (e.g., a Commander that buffs ranged throwers vs one that buffs melee swingers) — noted as future expansion.
 
 ### 7.2 Commanders
 - Mid-tier officer leading a squad of foot soldiers.
