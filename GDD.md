@@ -2,7 +2,8 @@
 
 **Working Title:** (TBD)
 **Genre:** Hack-and-Slash Action RPG
-**Platform:** Roblox
+**Platform:** Roblox — cross-platform (Desktop, Mobile, Console, Tablet), full crossplay, single shared player base/economy across devices
+**UI:** Fully responsive — HUD, shop/lobby menus, and map-select scale and re-layout per screen size/aspect ratio and input type (mouse/keyboard, gamepad, touch), so no cramped/cut-off UI on phone or tablet
 **Inspiration:** Sengoku Basara: Heroes 2 (PS2) — large-scale one-vs-many battlefield combat, flashy combos, commander/general enemy hierarchy, map-clearing objectives.
 
 ---
@@ -117,6 +118,27 @@ Features:
   - Ultimate Gauge charge
   - Rare gear/cosmetic chance (low odds, jackpot feel)
 - Respawn per map instance only (not farmable by repeatedly re-entering same run); fixed placements plus a few random spawn points per playthrough to keep exploration relevant.
+
+### 6.4 Combat Input System (Basara 2-style)
+
+Core moveset, mapped to Basara 2's button-feel (adapted to Roblox PC/mobile input):
+
+| Input | Action | Notes |
+|---|---|---|
+| **Light Attack** (M1 / tap) | Fast, low-damage swing | Base combo starter, short recovery |
+| **Heavy Attack** (M2 / hold) | Slow, high-damage/knockback swing | Can end or redirect a combo, breaks poise faster |
+| **Special Attack** (Q) | Weapon-unique move, short cooldown | Not tied to Ultimate Gauge; best poise-break tool, always available |
+| **Dash/Evade** (Shift) | Short-range dash with i-frames | Cancels out of attack recovery; dashing into an attack input triggers a dash-attack opener |
+| **Ultimate Attack** (R, gauge permitting) | Full-gauge screen-clearing super | Only usable at full Ultimate Gauge; see 4.3 |
+| **Lock-On / Target Switch** (Tab / right-stick click) | Snaps camera/aim to nearest or named enemy | Important for tracking Commanders/Mid-Boss/Final Boss in large crowds |
+
+**Combo branching:** Light and Heavy attacks chain in sequence (e.g., L-L-L vs L-L-H vs L-H) to produce different combo strings and finishers, Basara-style — mixing order changes hit count, knockback, and area coverage rather than being one fixed string. Encourages reading the crowd (wide Heavy-ended combos for groups, fast Light strings for single high-value targets).
+
+**Poise/Stagger:** Foot soldiers have no poise (die straight through combos, satisfies mob-mowing feel). Commanders, Mid-Bosses, and the Final Boss have a poise bar — sustained combo damage or a Special Attack breaks it, opening a **Break Window** (bonus damage, no enemy retaliation) before it regenerates. Mirrors Basara's officer-break-and-punish rhythm.
+
+**No player block/parry** — defense is dash-evade based (i-frames), consistent with Basara 2's mobility-over-blocking philosophy; keeps combat fast and combo-focused rather than defensive.
+
+**Cross-platform input mapping:** Same six actions above, remapped per device — Desktop (mouse/keyboard as listed), Console/Gamepad (face buttons + trigger for Ultimate + right-stick lock-on), Mobile/Tablet (on-screen attack/special/dash/ultimate buttons + auto-assist lock-on, since touch lacks a precise stick). Combo timing/hitboxes stay identical across devices — only input method changes — so crossplay stays fair.
 
 ---
 
