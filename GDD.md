@@ -67,6 +67,7 @@ Each slot has:
 - Each weapon type has its own combo string/moveset.
 - Weapons have rarity/upgrade levels (damage scaling, added effects e.g. fire/bleed).
 - Weapon skins sold separately as cosmetics.
+- **Weapon is fixed for the duration of a battlefield run** — no mid-combat switching, matching Basara 2. Weapon choice (and Ultimate/accessories) is only made at the Safe Lobby loadout station before entering a map.
 
 ### 4.3 Ultimate Attack
 - Player selects one **Ultimate Attack** (independent of weapon) — big screen-clearing move, Basara "Basara Art" style.
@@ -99,7 +100,8 @@ Features:
 ### 6.1 Structure
 - Large open battlefield, Basara-style: multiple capture points/camps leading toward an enemy stronghold.
 - On player arrival, nearby enemy squads immediately notice and advance to engage — aggressive pacing from the start, no downtime.
-- Maps are clearable solo or co-op (party of players share the instance, enemies scale with party size).
+- Maps are clearable solo or co-op, **party size cap: 8 players** (enemies scale with party size).
+- Entry is manual, not automatic: after selecting a map, players stand at the map's portal in the Safe Lobby. Party leader/members can choose to wait for more players to join the party or trigger the portal to teleport whoever's currently in with them — no forced auto-teleport on selection.
 
 ### 6.2 Objectives
 - Clear enemy camps/checkpoints to push toward the stronghold.
@@ -230,7 +232,5 @@ Sold in bundles via Robux developer products. Spent on:
 ---
 
 ## 11. Open Questions / Future Scope
-- Party size cap for co-op instances?
-- PvP mode (Basara had versus battles) — future consideration.
-- Guild/clan system for social layer expansion.
-- Weapon-switching mid-combat (multi-weapon loadout) vs single fixed weapon — TBD based on combo system complexity.
+- PvP mode: **not planned**, out of scope.
+- Guild/clan system for social layer expansion — desired, planned for post-launch if scope allows (clan tag, shared clan chat/lobby space, possibly clan-based leaderboard).
