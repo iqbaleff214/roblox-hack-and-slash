@@ -327,53 +327,61 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 6 — Safe Lobby Systems
 
-#### [ ] T-601 `ShopService`
+#### [x] T-601 `ShopService`
 **Depends on:** T-101–T-103, T-203, T-204
 **Description:** `PurchaseItem(itemId)` — looks up price (soft or premium currency), `CurrencyService.RemoveCurrency`, on success `InventoryService.GrantItem`.
 **DoD:** No partial-purchase state possible — currency deducted iff item granted.
 **Test cases:** Insufficient funds → purchase fails, currency unchanged, item not granted; sufficient funds → exact price deducted, item granted exactly once.
+**Verified:** `src/server/Lobby/Services/ShopService.lua`. Looks an id up across all three grantable catalogs at once (accessories/weapons/ultimates — globally-unique ids, confirmed since Phase 1). Ordering guarantees "no partial-purchase state": reject up front if already owned (nothing to buy, no currency touched), then deduct, then grant — refunding immediately if the grant somehow still failed. Along the way, found and fixed a real Phase-1 gap this task exposed: accessories had no player-facing display `name` at all (only weapons/ultimates did) — added it to `Types.Item` and every `ItemDefinitions` entry, since a shop obviously needs to show something better than a raw id like "OniMenpo". `ShopService.spec.lua` covers both DoD cases with a live player (Studio-only, S-1301).
 
-#### [ ] T-602 `ShopUIController` + `LoadoutUIController`
+#### [x] T-602 `ShopUIController` + `LoadoutUIController`
 **Depends on:** T-601, T-501, T-1103 (responsive scaling)
 **Description:** Client UI wired to Shop/Loadout/Inventory remotes.
 **DoD:** UI reflects server state after every remote round-trip (no client-optimistic desync left uncorrected).
 **Test cases:** Manual/visual.
+**Verified:** `src/client/Lobby/Controllers/ShopUIController.lua` + `LoadoutUIController.lua`, plus a small shared `Controllers/UI/UIBuilder.lua` (Instance-construction helpers reused across all 4 Lobby UI controllers this phase). Scoped deliberately: T-1103 (responsive framework) and S-1101/S-1102 (Studio art) haven't landed, so this is functional/unstyled by design, not a placeholder for correctness — every purchase and loadout save round-trips through the server, and displayed state only ever updates from server signals (`InventoryService.ItemGranted`, `CurrencyService.CurrencyChanged`, and the Loadout panel's own `SetLoadout` response) rather than being assumed locally, satisfying the "no client-optimistic desync" DoD. Loadout selection stages locally and only reaches the server on "Apply" — one whole-loadout call, mirroring T-501's no-partial-apply design instead of a remote per slot. Both open via a `ProximityPrompt` the controller attaches to their respective tagged kiosk/station part (`UIBuilder.AttachTriggerPrompt`) — Studio places the part (S-602/S-603), attaching the interaction prompt itself isn't a separate Studio task.
 
-#### [ ] T-603 `MapSelectController` (CTR-style)
+#### [x] T-603 `MapSelectController` (CTR-style)
 **Depends on:** T-106
 **Description:** Tile list from `MapService:GetMapDefinitions()`; selecting a tile shows a preview panel with recommended level, party-up option, and the map's **Main Reward** (GDD §5).
 **DoD:** Preview panel's Main Reward icon/name matches `MapDefinitions.mainRewardItemId` exactly (data-driven, not hardcoded per map in the UI script).
 **Test cases:** Manual/visual + a data-binding unit test (given a mock `MapDefinitions` entry, the view-model function produces the expected preview fields).
+**Verified:** Split into pure `src/shared/Formulas/MapPreviewViewModel.lua` (the literal data-binding view-model the test case asks for — zero dependencies, takes the map and its already-resolved reward item) + `src/client/Lobby/Controllers/MapSelectController.lua`. Added a thin `MapService` (`src/server/Lobby/Services/MapService.lua`) backing the literal `MapService:GetMapDefinitions()` call named in the task, even though the client could technically require the Shared data module directly — keeps the door open for future server-side filtering without a client-side API change. Opened by interacting with any `MapPortal`-tagged part (pre-selects that map), matching the GDD's "walk up to or click a map tile" framing — once open, any tile can be clicked to preview a different map too. Ran the view-model for real via `lune`: preview fields resolve correctly from a map + reward item, falls back to the raw id when unresolved, and different maps produce different (never hardcoded) previews. `MapPreviewViewModel.spec.lua` mirrors this for TestEZ.
 
-#### [ ] T-604 `PartyService`
+#### [x] T-604 `PartyService`
 **Depends on:** T-201
 **Description:** `CreateParty`/`InviteToParty`/`AcceptInvite`/`LeaveParty`/`KickMember` (leader-only), 8-player cap (GDD decision), `Signal PartyUpdated`.
 **DoD:** Cap enforced server-side; only the leader can kick.
 **Test cases:** 9th invite to a full party rejected; non-leader `KickMember` call rejected; leader `KickMember` succeeds and fires `PartyUpdated`.
+**Verified:** Split into pure `src/shared/Formulas/PartyRules.lua` (cap check + leader check, player identity typed `any` so tests can pass plain strings instead of real `Player` instances) + `src/server/Lobby/Services/PartyService.lua` (ephemeral, not DataStore-persisted — parties are a session-social concept, correctly dissolving on disconnect). `InviteToParty` auto-creates a party for a solo inviter — the task text only explicitly leader-restricts `KickMember`, so this matches common party-game UX without contradicting the spec. Ran the rules for real via `lune`: a 9th member at an 8-cap is rejected, a non-leader kick is rejected, and a leader kicking themselves (should use LeaveParty instead) is rejected too. `PartyRules.spec.lua` mirrors this; `PartyService.spec.lua` covers the solo-party case in Play Solo and the full invite/accept/kick flow when 2+ players are present (Studio Team Test, S-1301).
 
-#### [ ] T-605 `PartyUIController`
+#### [x] T-605 `PartyUIController`
 **Depends on:** T-604
 **Description:** Member list, ready-toggle, invite flow, "waiting for players" vs "launch now" choice at the portal (manual-teleport decision, GDD §6.1).
 **DoD:** UI never auto-triggers teleport — always requires an explicit player action.
 **Test cases:** Manual/visual.
+**Verified:** `src/client/Lobby/Controllers/PartyUIController.lua`. This task is also why T-606's original design got revised (see its Verified note) — a physical portal directly auto-teleporting on `ProximityPrompt.Triggered` would have violated this task's own DoD. "Launch Now" is a plain button `Activated` handler calling `PortalService:RequestTeleport`, reading whichever map `MapSelectController` (T-603) currently has selected — nothing here is timer-driven or automatic, satisfying the DoD by construction, not by convention. The ready-toggle is local-only, not server-synced: `PartyService` has no concept of "ready" (GDD §6.1's actual mechanic is just "leader triggers when ready," no per-member gating), so this is an honest lobby-social affordance, not something pretending to block anything.
 
-#### [ ] T-606 `PortalService`
+#### [x] T-606 `PortalService`
 **Depends on:** T-303, T-502, T-604, S-604/S-605 (physical portal parts)
 **Description:** `CollectionService`-tagged `MapPortal` parts (Attribute `MapId`) trigger via `ProximityPrompt`. `RequestTeleport(mapId)` validates: requester is party leader (or solo), level gate (T-303), then reserves a private server for the Battlefield place and `TeleportToPrivateServer`s the whole party with `TeleportData = {mapId = ...}`. Sets `InBattlefield = true` on all teleported players' combat state (feeds T-502).
 **DoD:** Debounced — one portal trigger produces exactly one reserve-server call, not one per party member.
 **Test cases:** Non-leader `RequestTeleport` call rejected (unless solo); under-level party blocked or warned per T-303 tolerance; rapid double-trigger of the same portal produces only one `ReserveServer` call.
+**Verified:** `src/server/Lobby/Services/PortalService.lua`. Deliberately revised away from the literal task description mid-implementation: wiring the physical portal's `ProximityPrompt.Triggered` directly to an immediate teleport would have made standing at the portal auto-teleport, contradicting T-605's own DoD ("UI never auto-triggers teleport — always requires an explicit player action") and the GDD's explicit two-step "wait vs launch" flow. So `RequestTeleport` is reachable *only* through the `.Client` remote, called from `PartyUIController`'s "Launch Now" button (T-605) — never from the prompt directly. Debounce is keyed per requesting player (the leader), matching "rapid double-trigger of the same portal" exactly, since only the leader can trigger for the whole party anyway. `Constants.PlaceIds.Battlefield` is still `nil` pending T-1402 (after S-001 publishes the real places) — guarded explicitly (`if not Constants.PlaceIds.Battlefield then ... end`) so this fails safely today with a clear warning instead of a raw Roblox API error, and will work once published. `PortalService.spec.lua` covers everything rejectable before that point — unknown map, non-leader request, under-level solo player — with the reserved-server path itself necessarily untested until publishing (S-1301/T-1402).
 
-#### [ ] T-607 Progression board UI
+#### [x] T-607 Progression board UI
 **Depends on:** T-202, T-203, T-905
 **Description:** Level, XP bar, currency balances, battle pass progress — live-updates on the relevant Signals.
 **DoD:** No polling — purely signal-driven.
 **Test cases:** Manual/visual.
+**Verified:** `src/client/Lobby/Controllers/ProgressionBoardController.lua`. Initial state from `DataService:GetProfile()`, then live-updates only from `LevelService.LevelUp` and `CurrencyService.CurrencyChanged` — no `task.spawn` polling loop anywhere, satisfying the DoD by construction. Battle pass progress is an honest "coming soon" label rather than fake data — T-905 (Phase 9) doesn't exist yet, so there's genuinely no signal to wire it to; this will need a follow-up once T-905 lands. Always visible (not a toggled panel), matching GDD §5's framing of the progression board as a persistent Safe Lobby display.
 
-#### [ ] T-608 Lobby combat lockout
+#### [x] T-608 Lobby combat lockout
 **Depends on:** T-006
 **Description:** Confirm (in code, not just by omission) that no `EnemySpawnService`/`CombatService` damage-application path is registered in the Lobby place bootstrap.
 **DoD:** Lobby place's service registration list contains zero combat/enemy services.
 **Test cases:** Assert Lobby bootstrap's service list has empty intersection with the Battlefield-only service list (same assertion style as T-006's smoke test).
+**Verified:** T-608's literal test case ("Lobby bootstrap's service list has empty intersection with the Battlefield-only service list") is exactly what `scripts/check-place-separation.luau` already computes — built in Phase 0 (T-006), not new code here. Re-ran it now that Phase 6 added four real Lobby services (Shop/Map/Party/Portal) and five Lobby controllers: still passes clean — `Lobby (8) and Battlefield (12) are disjoint`, `Lobby (5) and Battlefield (3) are disjoint`. No new script needed; this phase is exactly the first real exercise of that Phase 0 mechanism against non-empty folders on both sides, "in code, not just by omission," per the task's own framing.
 
 ---
 

@@ -6,6 +6,11 @@
 	(always free-to-earn); cosmetic-only items price in PremiumCurrency — the
 	GDD §9.5 guardrail (T-1004) requires that split to hold for every item that
 	is ever premium-exclusive.
+
+	`name` (Phase 6 addition): unlike Weapon/Ultimate, this catalog originally
+	had no player-facing display name — a real gap once Shop/Loadout UI (T-602)
+	and the Main Reward preview (T-603) actually needed to show these to a
+	player instead of a raw id like "OniMenpo".
 ]]
 
 local Constants = require(script.Parent.Parent.Constants)
@@ -17,6 +22,7 @@ local ItemDefinitions = {
 	-- Head
 	{
 		id = "Kabuto",
+		name = "Kabuto Helmet",
 		slot = "Head",
 		rarity = "Common",
 		statBonus = 1,
@@ -26,6 +32,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "HanEiKabuto",
+		name = "Han'ei Kabuto",
 		slot = "Head",
 		rarity = "Rare",
 		statBonus = 3,
@@ -35,6 +42,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "OniMenpo",
+		name = "Oni Menpo Mask",
 		slot = "Head",
 		rarity = "Legendary",
 		statBonus = 0,
@@ -46,6 +54,7 @@ local ItemDefinitions = {
 	-- Body
 	{
 		id = "AshigaruDo",
+		name = "Ashigaru Dō",
 		slot = "Body",
 		rarity = "Common",
 		statBonus = 1,
@@ -55,6 +64,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "DoMaru",
+		name = "Dō-maru Armor",
 		slot = "Body",
 		rarity = "Rare",
 		statBonus = 3,
@@ -64,6 +74,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "TigerFurDo",
+		name = "Tiger Fur Dō",
 		slot = "Body",
 		rarity = "Epic",
 		statBonus = 0,
@@ -75,6 +86,7 @@ local ItemDefinitions = {
 	-- Arm
 	{
 		id = "TekkoGauntlets",
+		name = "Tekko Gauntlets",
 		slot = "Arm",
 		rarity = "Common",
 		statBonus = 1,
@@ -84,6 +96,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "KoteBraces",
+		name = "Kote Braces",
 		slot = "Arm",
 		rarity = "Rare",
 		statBonus = 3,
@@ -93,6 +106,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "DragonKote",
+		name = "Dragon Kote",
 		slot = "Arm",
 		rarity = "Epic",
 		statBonus = 0,
@@ -104,6 +118,7 @@ local ItemDefinitions = {
 	-- Leg
 	{
 		id = "WarazoriSandals",
+		name = "Warazori Sandals",
 		slot = "Leg",
 		rarity = "Common",
 		statBonus = 1,
@@ -113,6 +128,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "SuneAteGreaves",
+		name = "Sune-ate Greaves",
 		slot = "Leg",
 		rarity = "Rare",
 		statBonus = 3,
@@ -122,6 +138,7 @@ local ItemDefinitions = {
 	},
 	{
 		id = "StormSuneAte",
+		name = "Storm Sune-ate",
 		slot = "Leg",
 		rarity = "Epic",
 		statBonus = 0,

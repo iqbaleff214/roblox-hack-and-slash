@@ -49,6 +49,7 @@ local priceShape = t.strictInterface({
 
 Types.Item = t.strict(t.strictInterface({
 	id = t.string,
+	name = t.string,
 	slot = t.literal("Head", "Body", "Arm", "Leg"),
 	rarity = t.string,
 	statBonus = t.number,

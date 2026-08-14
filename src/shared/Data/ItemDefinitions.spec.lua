@@ -20,6 +20,13 @@ return function()
 			end
 		end)
 
+		it("has a non-empty display name for every entry (Phase 6: Shop/Loadout UI, Main Reward preview)", function()
+			for _, item in ItemDefinitions do
+				expect(item.name).to.be.a("string")
+				expect(#item.name > 0).to.equal(true)
+			end
+		end)
+
 		it("only uses valid accessory slots", function()
 			local validSlots = { Head = true, Body = true, Arm = true, Leg = true }
 			for _, item in ItemDefinitions do

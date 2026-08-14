@@ -68,6 +68,7 @@ return function()
 		local function validItem()
 			return {
 				id = "Kabuto",
+				name = "Kabuto Helmet",
 				slot = "Head",
 				rarity = "Common",
 				statBonus = 0,

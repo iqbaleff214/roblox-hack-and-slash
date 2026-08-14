@@ -62,6 +62,11 @@ Constants.Attributes = {
 
 -- Combat tuning constants (Phase 4). Exact values are a balancing-pass
 -- concern like XPCurve/StatMath — these are reasonable placeholders.
+-- Party tuning (T-604, GDD §6.1).
+Constants.Party = {
+	MaxSize = 8,
+}
+
 -- Loadout tuning (Phase 5).
 Constants.Loadout = {
 	-- Additional slots are purchased via ProductCatalog.LoadoutPresetSlot

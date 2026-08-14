@@ -69,6 +69,12 @@ return function()
 		end)
 	end)
 
+	describe("Constants.Party", function()
+		it("defines MaxSize matching GDD §6.1's 8-player cap", function()
+			expect(Constants.Party.MaxSize).to.equal(8)
+		end)
+	end)
+
 	describe("Constants.Loadout", function()
 		it("defines a positive FreePresetSlots", function()
 			expect(Constants.Loadout.FreePresetSlots).to.be.a("number")
