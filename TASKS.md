@@ -35,35 +35,40 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 0 — Foundation
 
-#### [ ] T-001 Verify toolchain end-to-end
+#### [x] T-001 Verify toolchain end-to-end
 **Depends on:** none
 **Description:** Confirm `rojo build`, `wally install`, `selene .`, and the TestEZ runner all work against the current empty scaffold before any feature code lands.
-**DoD:** `rojo build default.project.json -o build/place.rbxl` succeeds; `wally install` pulls all `wally.toml` deps into `Packages/`/`ServerPackages/`; `selene src` returns 0 issues on an empty tree; a placeholder TestEZ spec runs green via whatever runner is chosen (Studio plugin, `run-in-roblox`, or CI action — document the choice in this task's checkbox comment).
+**DoD:** `rojo build lobby.project.json`/`battlefield.project.json -o build/place.rbxl` succeeds (superseded `default.project.json`, see T-006); `wally install` pulls all `wally.toml` deps into `Packages/`/`ServerPackages/`; `selene src` returns 0 issues on an empty tree; a placeholder TestEZ spec runs green via whatever runner is chosen (Studio plugin, `run-in-roblox`, or CI action — document the choice in this task's checkbox comment).
 **Test cases:** N/A (tooling check).
+**Verified:** `wally install` ✓, both `rojo build` targets ✓, `selene src` → 0 errors/0 warnings ✓ (fixed a latent bug along the way: `testez.toml` was the wrong format for Selene's std loader — it silently never applied; replaced with `testez.yml`, see its header comment). **Runner choice: Roblox Studio + TestEZ Companion plugin**, matching the pre-existing `testez.toml`/`selene.toml` setup. Caveat: this sandbox has no Roblox Studio, so the placeholder specs (`Types.spec.lua`, `Constants.spec.lua`) are lint-clean and structurally correct but were not executed in a live runner — that run is still pending, tracked alongside S-1301.
 
-#### [ ] T-002 Knit bootstrap
+#### [x] T-002 Knit bootstrap
 **Depends on:** T-001
 **Description:** `src/server/init.server.lua` starts Knit and requires every module under `src/server/Services/*`; `src/client/init.client.lua` starts Knit and requires every module under `src/client/Controllers/*`.
 **DoD:** Adding a new `Services/Foo.lua` / `Controllers/Foo.lua` file is auto-picked up with no edits to the init scripts (glob-require via `script:GetChildren()`/`require` loop, not a hardcoded list).
 **Test cases:** N/A.
+**Verified:** Realized as one bootstrap per place (per the T-006 architecture decision): `src/server/Lobby/init.server.lua`, `src/server/Battlefield/init.server.lua`, `src/client/Lobby/init.client.lua`, `src/client/Battlefield/init.client.lua`, each glob-requiring its own `Services`/`Controllers` folder plus the cross-place `Shared` one via `src/shared/RequireAll.lua`. Both places build clean with `rojo build`.
 
-#### [ ] T-003 `src/shared/Constants.lua`
+#### [x] T-003 `src/shared/Constants.lua`
 **Depends on:** T-001
 **Description:** Central table of CollectionService tag names, attribute keys (per naming-contract table above), RemoteFolder name, Currency enum (`SoftCurrency`/`PremiumCurrency`), and a `PlaceIds` table (stub `nil` values, filled by T-1402 after S-001).
 **DoD:** Every other module that needs a tag/attribute/currency-id string pulls it from here — zero magic strings duplicated elsewhere (spot-check via grep in T-1301).
 **Test cases:** Schema test — every key referenced by name in this doc's naming-contract table exists in the module.
+**Verified:** `Constants.spec.lua` asserts every tag/attribute/currency key from the naming-contract table (§ above) exists and matches; lint-clean.
 
-#### [ ] T-004 `src/shared/Types.lua`
+#### [x] T-004 `src/shared/Types.lua`
 **Depends on:** T-001
 **Description:** `t`-library type checkers for `Profile`, `Item`, `EnemyDefinition`, `MapDefinition`, `QuestDefinition`, `Loadout`. Stub now, extended as Phase 1 fills in real schemas.
 **DoD:** Each checker is a pure function `t.strict(shape)` importable from shared and server.
 **Test cases:** For each checker, one passing fixture and one failing fixture (missing field / wrong type) asserted via TestEZ.
+**Verified:** Implemented with the real `t.strict(t.strictInterface({...}))` (confirmed against the installed `osyrisrblx/t@3.1.1` source — `t.strict` and `t.strictInterface` are both real APIs). `Types.spec.lua` covers all six checkers with a passing + failing fixture each; lint-clean. Same Studio-execution caveat as T-001 applies to actually running the spec.
 
-#### [ ] T-006 Multi-place Rojo project files
+#### [x] T-006 Multi-place Rojo project files
 **Depends on:** T-001, architecture decision above
 **Description:** Split `default.project.json` into `lobby.project.json` (Safe Lobby place tree) and `battlefield.project.json` (Battlefield place tree), sharing `src/shared` but with place-specific server bootstrap entrypoints (Lobby never loads EnemySpawnService et al.; Battlefield never loads ShopService/PortalService et al.).
 **DoD:** Both project files build independently with `rojo build`; Lobby build contains no enemy/combat-instance code paths, Battlefield build contains no shop/social code paths (verified by a simple `grep` of the built script tree, or by service registration lists being disjoint).
 **Test cases:** N/A (build-config check), but add a smoke test asserting `LobbyServices` and `BattlefieldServices` module lists (whatever you name them) have empty intersection.
+**Verified:** `default.project.json` removed (only file that referenced it was this doc); `lobby.project.json`/`battlefield.project.json` each build clean via `rojo build`. Disjointness smoke test implemented as `scripts/check-place-separation.luau` (run via `lune run`, since this compares two place trees that never coexist in one DataModel — not TestEZ-expressible). Actually executed: passes on the current empty `Services`/`Controllers` folders, and genuinely fails (exit 1) when a same-named module is placed in both `Lobby` and `Battlefield` — verified with a throwaway fixture, then cleaned up.
 
 ---
 

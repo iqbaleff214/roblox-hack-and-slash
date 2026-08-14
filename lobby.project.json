@@ -1,0 +1,42 @@
+{
+  "name": "hack-and-slash-lobby",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Server": {
+        "$path": "src/server/Lobby"
+      },
+      "SharedServer": {
+        "$path": "src/server/Shared"
+      },
+      "ServerPackages": {
+        "$path": "ServerPackages"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Client": {
+          "$path": "src/client/Lobby"
+        },
+        "SharedClient": {
+          "$path": "src/client/Shared"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Packages": {
+        "$path": "Packages"
+      },
+      "Assets": {
+        "$path": "src/assets"
+      }
+    }
+  }
+}

@@ -1,11 +1,14 @@
 {
-  "name": "hack-and-slash",
+  "name": "hack-and-slash-battlefield",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {
       "$className": "ServerScriptService",
       "Server": {
-        "$path": "src/server"
+        "$path": "src/server/Battlefield"
+      },
+      "SharedServer": {
+        "$path": "src/server/Shared"
       },
       "ServerPackages": {
         "$path": "ServerPackages"
@@ -16,7 +19,10 @@
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
         "Client": {
-          "$path": "src/client"
+          "$path": "src/client/Battlefield"
+        },
+        "SharedClient": {
+          "$path": "src/client/Shared"
         }
       }
     },

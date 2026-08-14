@@ -1,0 +1,1 @@
+Controllers loaded in **both** places — e.g. `PlatformDetectionController`, `InputController`, responsive-UI framework (Phase 4/11). Drop a `.lua` ModuleScript here and it's picked up automatically by both places' client bootstraps.

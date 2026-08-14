@@ -1,0 +1,1 @@
+Services loaded **only** in the Lobby place — e.g. `ShopService`, `LoadoutService`, `PartyService`, `PortalService` (Phase 5/6). Never put a Battlefield-only service here — `scripts/check-place-separation.luau` fails the build on any name collision with `src/server/Battlefield/Services`.

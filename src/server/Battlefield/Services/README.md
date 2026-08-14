@@ -1,0 +1,1 @@
+Services loaded **only** in the Battlefield place — e.g. `EnemySpawnService`, `CombatService`, `HitboxService`, `ObjectiveService` (Phase 4/7). Never put a Lobby-only service here — `scripts/check-place-separation.luau` fails the build on any name collision with `src/server/Lobby/Services`.

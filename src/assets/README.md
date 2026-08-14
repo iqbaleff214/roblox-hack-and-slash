@@ -1,0 +1,1 @@
+Synced to `ReplicatedStorage.Assets` in both places. Map templates go under `Maps/<mapId>/` (read by `BattlefieldBootstrap`, T-701); shared models/VFX/animations produced by the STUDIO_TASKS.md asset tasks (S-101–S-104, S-707/S-708) live here too.

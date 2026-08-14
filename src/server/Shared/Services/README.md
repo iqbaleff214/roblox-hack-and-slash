@@ -1,0 +1,1 @@
+Services loaded in **both** places (Lobby and Battlefield) — e.g. `DataService`, `CurrencyService`, `InventoryService` (Phase 2+). Drop a `.lua` ModuleScript here and it's picked up automatically by both places' bootstraps, no edits needed (see `src/shared/RequireAll.lua`).
