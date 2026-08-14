@@ -288,35 +288,40 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 5 — Customization & Loadout
 
-#### [ ] T-501 `LoadoutService`
+#### [x] T-501 `LoadoutService`
 **Depends on:** T-101–T-103, T-204
 **Description:** `GetLoadout`, `SetLoadout(loadoutTable)` — validates ownership (`InventoryService.HasItem`) for every slot before accepting, persists, `Signal LoadoutChanged`.
 **DoD:** Rejects any loadout referencing an unowned item id, whole-loadout (no partial apply).
 **Test cases:** `SetLoadout` with one unowned accessory id rejected in full (no partial mutation of the other 4 valid slots); fully-owned loadout accepted and persisted.
+**Verified:** `src/server/Shared/Services/LoadoutService.lua`, Shared (not Lobby-only — matters for T-502's real enforcement). Validates in two stages before touching anything: shape via `Types.Loadout` (already covered since Phase 0), then ownership/catalog via a new pure `src/shared/Formulas/LoadoutValidation.lua` — which also checks that each accessory's catalog `slot` matches the slot key it's being placed into (an owned Head item can't be slotted as Arm), a correctness check beyond the literal spec but a real bug class worth closing. "No partial apply" falls out structurally: nothing is written to `profile.Data.Loadout` until every check passes. Reads ownership directly from `profile.Data.OwnedItems` rather than `InventoryService:HasItem` per-slot (same source of truth, avoids N remote-feeling calls for one validation pass). Zero-dependency validation module, ran for real via `lune`: fully-owned/correctly-slotted accepted, unowned weapon/ultimate/accessory each rejected with the right reason, unknown catalog id rejected, and the wrong-slot case rejected. `LoadoutValidation.spec.lua` mirrors this; `LoadoutService.spec.lua` covers the persistence/signal integration (Studio-only, S-1301).
 
-#### [ ] T-502 Loadout lock during battlefield runs
+#### [x] T-502 Loadout lock during battlefield runs
 **Depends on:** T-501
 **Description:** Enforces GDD §4.2: weapon/ultimate/accessories fixed for the run. `SetLoadout` rejected server-side while the player's combat-state flag says `InBattlefield` (set by PortalService T-606 on teleport-in, cleared on return to Lobby).
 **DoD:** No client-side-only enforcement — server rejects regardless of UI state.
 **Test cases:** `SetLoadout` while `InBattlefield = true` rejected; same call while `false` accepted.
+**Verified:** A real architectural wrinkle here worth being explicit about: the task's own phrasing ("set by PortalService on teleport-in") doesn't actually work as written — a player's Lobby server and Battlefield server are different processes with no shared memory, so nothing "set" in the Lobby is readable in the Battlefield session. Rather than leave this as a TODO for Phase 6, `LoadoutService` detects it directly: `player:GetJoinData().TeleportData.mapId` is only ever present when a player arrives via a map portal, never on a normal Lobby join — so its presence on `PlayerAdded` *is* the InBattlefield signal, checked today, not just scaffolded for later. This is also exactly the mechanism T-701 (Phase 7's BattlefieldBootstrap) will independently rely on for the same TeleportData, so it's not a throwaway shortcut. Also exposed `LoadoutService:SetInBattlefield`/`:IsInBattlefield` as an explicit override for T-606/T-701 to call once they exist. `LoadoutService.spec.lua` exercises both sides via the override (Studio-only, S-1301, since it needs a live Player session).
 
-#### [ ] T-503 Loadout presets
+#### [x] T-503 Loadout presets
 **Depends on:** T-501, T-110
 **Description:** `LoadoutPresets` array on profile (1 free slot default, +N via `ProductCatalog` purchase — T-1006). `SavePreset`/`LoadPreset`.
 **DoD:** Preset count capped at the player's purchased limit.
 **Test cases:** Save beyond current cap rejected; save within cap accepted; load applies via the same validated path as T-501 (re-validates ownership, in case an item was since sold/removed).
+**Verified:** `LoadoutService:GetPresetCap`/`:SavePreset`/`:LoadPreset`. The free-slot count (`Constants.Loadout.FreePresetSlots = 1`) lives in Constants per the project's tuning-constant convention; the purchased-extra count needed a home that didn't exist in the Phase 2 profile schema, so it's tracked as `profile.Data.Settings.PurchasedLoadoutPresetSlots` (defaulting to 0) rather than extending `Types.Profile`'s top-level shape again — `Settings` was already designed as the generic per-player-counter bucket. `LoadPreset` calls `:SetLoadout` internally, so it automatically re-validates ownership and respects the InBattlefield lock — no separate code path to keep in sync. `LoadoutService.spec.lua` covers cap enforcement and preset load (Studio-only, S-1301).
 
-#### [ ] T-504 `CharacterAppearanceService`
+#### [x] T-504 `CharacterAppearanceService`
 **Depends on:** T-501
 **Description:** On loadout change (Lobby only) or character spawn, welds Accessory (Head/Body/Arm/Leg) and Weapon models onto the character via Motor6D/Attachment, reading `meshAssetId`/`animationIds` from the catalogs.
 **DoD:** Visuals match equipped loadout on every spawn, including respawn after death mid-run (re-applies the run-locked loadout, not whatever's currently in the profile if it somehow diverged).
 **Test cases:** Manual/visual (rigging/welding is not meaningfully unit-testable) — verified in S-1301.
+**Verified:** `src/server/Shared/Services/CharacterAppearanceService.lua`. The DoD's "re-applies the run-locked loadout, not whatever's in the profile if it diverged" is handled by capturing a per-session snapshot on session start and on `LoadoutService.LoadoutChanged`, instead of re-reading `profile.Data.Loadout` on every spawn — since T-502 blocks `LoadoutChanged` entirely in the Battlefield, the snapshot from session start is what every mid-run respawn uses regardless of the live profile; in the Lobby, the snapshot tracks live changes normally. One mechanism serves both contexts without this Shared service needing to know which place it's in. Also caught and fixed a real Phase-1 gap this task exposed: `WeaponDefinitions`/`Types.Weapon` had no model-asset field at all — added `weaponModelAssetId` and updated `STUDIO_TASKS.md`'s S-102 to cover weapon models, not just animations. Every weld path no-ops gracefully on a missing asset (all current catalog entries are still `nil` pending S-102/S-103) rather than erroring, so this is correct and inert today. `CharacterAppearanceService.spec.lua` confirms it doesn't error when applying an appearance with no real assets yet; full visual verification is manual per the task's own guidance, once S-102/S-103 land (S-1301).
 
-#### [ ] T-505 Stat recompute on loadout change
+#### [x] T-505 Stat recompute on loadout change
 **Depends on:** T-504, T-301
 **Description:** Hook `LoadoutChanged` → `StatsService.ComputeStats` recompute.
 **DoD:** Equipping a higher-rarity accessory immediately reflects in the player's live stats.
 **Test cases:** Integration test — `SetLoadout` with a known stat-bonus item set produces the expected `StatMath.ComputeStats` output.
+**Verified:** One-line addition to `StatsService:KnitInit` — connects to `LoadoutService.LoadoutChanged` (the server-internal signal, same dual-signal pattern as `LevelService.LevelUp` from Phase 3) and calls the same `:RecomputeStats` used for level-ups. `StatsService.spec.lua` adds the integration test the task literally asks for: set a known-clean baseline loadout, measure stats, equip HanEiKabuto (Rare Head, `statBonus = 3`), measure again, assert the HP delta is exactly +3 (Studio-only, S-1301, since it needs a live player and granted items).
 
 ---
 

@@ -62,6 +62,13 @@ Constants.Attributes = {
 
 -- Combat tuning constants (Phase 4). Exact values are a balancing-pass
 -- concern like XPCurve/StatMath — these are reasonable placeholders.
+-- Loadout tuning (Phase 5).
+Constants.Loadout = {
+	-- Additional slots are purchased via ProductCatalog.LoadoutPresetSlot
+	-- (T-1006) and tracked as profile.Settings.PurchasedLoadoutPresetSlots.
+	FreePresetSlots = 1,
+}
+
 Constants.Combat = {
 	InputDebounceSeconds = 0.05,
 	RecoveryWindowSeconds = 1.5,

@@ -49,11 +49,11 @@ Each task: **Description**, **Depends on**, **DoD**, **Verification** (how to co
 **DoD:** A sample accessory can be welded to each of the four slots without manual per-item socket hacking.
 **Verification:** Manually weld one placeholder item per slot in Studio, confirm correct attachment/orientation on a moving character.
 
-#### [ ] S-102 Weapon combo animations
+#### [ ] S-102 Weapon models + combo animations
 **Depends on:** S-101
-**Description:** For each weapon in `WeaponDefinitions.lua` (T-102), create/import animations: 3× Light, 1× Heavy (or per your combo tree's finisher count from T-104), Special, Dash, Ultimate. Publish each as a Roblox Animation asset.
-**DoD:** One animation id per required move per weapon, all ids collected.
-**Verification:** Hand the collected animation ids to T-102 — `WeaponDefinitions.lua`'s `animationIds` fields have no `nil`s left. Preview each animation in Studio's Animation Editor before publishing.
+**Description:** For each weapon in `WeaponDefinitions.lua` (T-102): (1) create/import a weapon model (a physical mesh to weld into the character's hand — CharacterAppearanceService, T-504, has nothing to attach without one); (2) create/import animations: 3× Light, 1× Heavy (or per your combo tree's finisher count from T-104), Special, Dash, Ultimate. Publish each as a Roblox Animation asset.
+**DoD:** One model + one animation id per required move, per weapon, all ids collected.
+**Verification:** Hand the collected ids back — `WeaponDefinitions.lua`'s `weaponModelAssetId` and `animationIds` fields have no `nil`s left. Preview each animation in Studio's Animation Editor before publishing; confirm the model's handle orientation looks right gripped in a test character's hand.
 
 #### [ ] S-103 Accessory models
 **Depends on:** S-101

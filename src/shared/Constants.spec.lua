@@ -69,6 +69,13 @@ return function()
 		end)
 	end)
 
+	describe("Constants.Loadout", function()
+		it("defines a positive FreePresetSlots", function()
+			expect(Constants.Loadout.FreePresetSlots).to.be.a("number")
+			expect(Constants.Loadout.FreePresetSlots > 0).to.equal(true)
+		end)
+	end)
+
 	describe("Constants.Combat", function()
 		local expectedKeys = {
 			"InputDebounceSeconds",

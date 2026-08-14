@@ -3,8 +3,9 @@
 	Thin Knit wrapper around StatMath (T-301) — resolves a player's equipped
 	accessory ids to statBonus numbers, calls the pure calc, caches the
 	result, fires `Client.StatsChanged`. Recomputes on `LevelService.LevelUp`
-	(server-internal signal); T-505 (Phase 5) wires the other recompute
-	trigger, `LoadoutService.LoadoutChanged`, once that service exists.
+	and, per T-505, on `LoadoutService.LoadoutChanged` (both server-internal
+	signals) — so equipping a higher-rarity accessory immediately reflects
+	in live stats, matching T-505's DoD.
 ]]
 
 local Players = game:GetService("Players")
@@ -65,6 +66,11 @@ function StatsService:KnitInit()
 
 	local LevelService = Knit.GetService("LevelService")
 	LevelService.LevelUp:Connect(function(player: Player)
+		self:RecomputeStats(player)
+	end)
+
+	local LoadoutService = Knit.GetService("LoadoutService")
+	LoadoutService.LoadoutChanged:Connect(function(player: Player)
 		self:RecomputeStats(player)
 	end)
 

@@ -3,8 +3,10 @@
 	Weapon catalog (GDD §4.2). An array of `Types.Weapon` records. `comboTreeId`
 	points at a matching key in `ComboTrees.lua` (T-104) — one tree per weapon,
 	same id. `animationIds` is a placeholder table (keys filled with real
-	animation ids by S-102); left empty here on purpose. Weapon is fixed for
-	the whole battlefield run (GDD §4.2) — chosen only in the Lobby loadout.
+	animation ids by S-102); left empty here on purpose. `weaponModelAssetId`
+	is likewise `nil` until S-102 provides a real weapon model for
+	CharacterAppearanceService (T-504) to weld. Weapon is fixed for the whole
+	battlefield run (GDD §4.2) — chosen only in the Lobby loadout.
 ]]
 
 local Constants = require(script.Parent.Parent.Constants)
@@ -19,6 +21,7 @@ local WeaponDefinitions = {
 		baseDamage = 10,
 		rarity = "Common",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 0 }, -- starter weapon, always owned
 	},
 	{
@@ -28,6 +31,7 @@ local WeaponDefinitions = {
 		baseDamage = 11,
 		rarity = "Rare",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 500 },
 	},
 	{
@@ -37,6 +41,7 @@ local WeaponDefinitions = {
 		baseDamage = 12,
 		rarity = "Rare",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 600 },
 	},
 	{
@@ -46,6 +51,7 @@ local WeaponDefinitions = {
 		baseDamage = 8,
 		rarity = "Epic",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 800 },
 	},
 	{
@@ -55,6 +61,7 @@ local WeaponDefinitions = {
 		baseDamage = 9,
 		rarity = "Common",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 300 },
 	},
 	{
@@ -64,6 +71,7 @@ local WeaponDefinitions = {
 		baseDamage = 8,
 		rarity = "Epic",
 		animationIds = {},
+		weaponModelAssetId = nil,
 		price = { currency = Soft, amount = 800 },
 	},
 }

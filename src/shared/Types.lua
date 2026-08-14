@@ -98,6 +98,10 @@ Types.Weapon = t.strict(t.strictInterface({
 	rarity = t.string,
 	animationIds = t.table,
 	price = priceShape,
+	-- Added in Phase 5 (T-504) — CharacterAppearanceService needs a weapon
+	-- model to weld, same "placeholder until Studio provides it" pattern as
+	-- Types.Item.meshAssetId.
+	weaponModelAssetId = t.optional(t.string),
 }))
 
 Types.Ultimate = t.strict(t.strictInterface({
