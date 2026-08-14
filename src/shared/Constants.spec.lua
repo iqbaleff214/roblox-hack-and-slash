@@ -15,6 +15,7 @@ return function()
 			"MidBossSpawn",
 			"FinalBossSpawn",
 			"FinalBossArenaGate",
+			"Enemy",
 		}
 
 		for _, tagKey in expectedTags do
@@ -35,6 +36,8 @@ return function()
 			"ObjectiveId",
 			"ObjectiveType",
 			"MidBossId",
+			"EnemyId",
+			"EnemyTier",
 		}
 
 		for _, attrKey in expectedAttributes do
@@ -64,6 +67,31 @@ return function()
 			expect(Constants.MapLevelTolerance).to.be.a("number")
 			expect(Constants.MapLevelTolerance >= 0).to.equal(true)
 		end)
+	end)
+
+	describe("Constants.Combat", function()
+		local expectedKeys = {
+			"InputDebounceSeconds",
+			"RecoveryWindowSeconds",
+			"DashSpeed",
+			"DashIFrameSeconds",
+			"SpecialCooldownSeconds",
+			"SpecialDamageMult",
+			"SpecialPoiseDamage",
+			"UltimateGaugeMax",
+			"UltimateGaugeGainPerDamageDealt",
+			"UltimateGaugeGainPerDamageTaken",
+			"PoiseBreakWindowSeconds",
+			"RateLimitMaxPerSecond",
+			"RateLimitWindowSeconds",
+		}
+
+		for _, key in expectedKeys do
+			it(("defines a positive number for %s"):format(key), function()
+				expect(Constants.Combat[key]).to.be.a("number")
+				expect(Constants.Combat[key] > 0).to.equal(true)
+			end)
+		end
 	end)
 
 	describe("Constants.PlaceIds", function()

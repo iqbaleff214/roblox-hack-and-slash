@@ -214,65 +214,75 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 4 — Combat System
 
-#### [ ] T-401 `InputController` (client, desktop baseline)
+#### [x] T-401 `InputController` (client, desktop baseline)
 **Depends on:** T-002
 **Description:** Maps M1/M2/Q/Shift/R/Tab to ability-intent events per GDD §6.4 table. Debounced; no server calls here, just intent → local event bus (gamepad/touch remapping added in Phase 11 on top of this).
 **DoD:** Each of the six inputs fires exactly one intent event per press, no double-fire on key-repeat.
 **Test cases:** Manual/visual (input simulation is awkward to unit-test in Roblox; cover via debounce logic extracted to a pure function and unit-test *that*).
+**Verified:** `src/client/Battlefield/Controllers/InputController.lua` — `UserInputService.InputBegan` mapped to six local (non-networked) `Signal`s, debounced via `shared/Formulas/InputDebounce.lua`. Added a small `CombatController` (not its own task id, but necessary glue — see its header comment) to actually consume these intents and call the server request methods on T-402/405/406/407; without it the intents would go nowhere. Debounce logic is zero-dependency, so I ran it for real via `lune`: first press fires, rapid repeat within the interval is suppressed, a later press fires again. `InputDebounce.spec.lua` mirrors this for TestEZ; the actual `UserInputService` wiring is manual/visual per the task's own guidance.
 
-#### [ ] T-402 `CombatService.Client:RequestAttack(attackType)`
+#### [x] T-402 `CombatService.Client:RequestAttack(attackType)`
 **Depends on:** T-401, T-201
 **Description:** Server validates: player alive, weapon equipped (T-501), not `Staggered`, respects a per-player combat state machine (`Idle|Attacking|Dashing|Staggered`).
 **DoD:** Invalid-state requests are rejected server-side with no visible effect (no animation/damage).
 **Test cases:** Request while `Staggered` rejected; request while `Idle` accepted and transitions state to `Attacking`.
+**Verified:** `src/server/Battlefield/Services/CombatService.lua` — owns the per-player state machine (backed by pure `shared/Formulas/CombatStateMachine.lua`) that Dash/Special/Ultimate services also transition through via `:TryTransition`, so there's one source of truth. Reads the player's current weapon straight from `DataService`'s profile (`Loadout.weaponId`) instead of depending on T-501 (LoadoutService, doesn't exist until Phase 5) — safe because loadout is locked for the whole run and nothing in the Battlefield place can change it yet. The state machine itself is zero-dependency and genuinely cancel-friendly per GDD §6.4 (only `Staggered` rejects); ran it for real via `lune`: Staggered rejects every action, Idle+Attack transitions to Attacking, Attacking+Dash and Dashing+Attack are both explicitly allowed (matching the GDD's stated cancel/dash-attack-opener rules). `CombatStateMachine.spec.lua` mirrors this; `CombatService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-403 `shared/ComboResolver.lua`
+#### [x] T-403 `shared/ComboResolver.lua`
 **Depends on:** T-104
 **Description:** Pure function `Resolve(currentNodeId, comboTreeId, input: "Light"|"Heavy"): nextNodeId`. Server calls this on every attack input to determine the next combo node (and thus damage/hitbox).
 **DoD:** No side effects, fully deterministic.
 **Test cases:** Full branching coverage per T-104's sample weapon (`L,L,L` / `L,L,H` / `L,H` → three distinct finisher ids); invalid input at a node with no matching branch resets to root.
+**Verified:** `src/shared/Formulas/ComboResolver.lua` — looks up `comboTreeId` in `ComboTrees.lua` and walks one edge; a dead-end (finisher, no branch for the given input) resets to the tree's root. No side effects — never mutates the tree or any player state. Ran it for real via `lune` (copied alongside its zero-dependency `ComboTrees` require): Katana's `L,L,L`/`L,L,H`/`L,H` reach the three distinct finishers from T-104, and hitting a finisher again resets to root. `ComboResolver.spec.lua` mirrors this for TestEZ.
 
-#### [ ] T-404 `HitboxService`
+#### [x] T-404 `HitboxService`
 **Depends on:** T-403
 **Description:** Spawns/attaches a hitbox per the resolved combo node's `hitboxShape`, resolves overlaps against the server's enemy registry (T-701), applies damage. **Server-authoritative only** — client never computes or reports damage.
 **DoD:** No client RemoteEvent path exists that lets a client assert "I dealt N damage"; all damage numbers originate server-side.
 **Test cases:** Given a mocked set of enemy positions and a hitbox shape, correct subset of enemies takes damage; enemies outside the shape are unaffected.
+**Verified:** Split into pure geometry (`src/shared/Formulas/HitboxGeometry.lua` — radius + facing-cone math over plain `{x,y,z}` tables, not Vector3, so it's genuinely dependency-free) + `src/server/Battlefield/Services/HitboxService.lua` (no `.Client` methods at all — a hit is always the *result* of an already-validated request from CombatService/DashService/SpecialAttackService/UltimateGaugeService, never something a client triggers or reports). T-701 (the enemy registry) doesn't exist until Phase 7, so I built the minimal registry it needs now as forward-compatible infrastructure: `src/server/Battlefield/Support/EnemyRegistry.lua` — deliberately kept out of `src/shared/`, since a shared-synced registry with live enemy positions and a raw `takeDamage` callback would be a direct wallhack/instant-kill exploit surface for any client that just `require()`d it; Phase 7's EnemySpawnService will populate it. Ran the geometry and registry for real via `lune`: front-facing hits within radius/cone connect, behind-cone targets are excluded for narrow shapes, `Slam` (heavy finishers) hits all around regardless of facing, radius-only hits pick the correct subset, and the registry's register/lookup/damage-callback/unregister cycle all work. `HitboxGeometry.spec.lua`/`EnemyRegistry.spec.lua` mirror this for TestEZ; `HitboxService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-405 `DashService`
+#### [x] T-405 `DashService`
 **Depends on:** T-402
 **Description:** Server validates dash request, grants an i-frame window (flag on combat state), moves the character, cancels current attack recovery.
 **DoD:** Damage taken during the i-frame window is voided (checked by whichever service applies enemy damage to the player).
 **Test cases:** Damage event during active i-frame flag is discarded; damage event just after flag expires is applied normally.
+**Verified:** `src/server/Battlefield/Services/DashService.lua` — validates through `CombatService:TryTransition(player, "Dash")` (the shared state machine, so Dash from Attacking correctly cancels attack recovery — the cancel happens for free via the `actionId`-versioned recovery timer CombatService already runs), grants the i-frame window via `CombatService:SetInvulnerable`/`:IsInvulnerable` (single source of truth other combat state lives in), and moves the character with a `LinearVelocity` constraint (respects collision, won't clip through walls, unlike an instant CFrame offset). The DoD's "damage taken during i-frames is voided" check can't be exercised end-to-end yet — the enemy-attacks-player code that would call `CombatService:IsInvulnerable` is Phase 7 — but the mechanism itself is complete and correct now; documented this explicitly rather than silently claiming full coverage. `DashService.spec.lua` covers what's testable now (i-frame flag set, state transitions to Dashing) given a live player (Studio-only, S-1301).
 
-#### [ ] T-406 `SpecialAttackService`
+#### [x] T-406 `SpecialAttackService`
 **Depends on:** T-402, T-104
 **Description:** Per-weapon special move, server-tracked cooldown (`tick()`-based per player), flags bonus poise damage for `PoiseService`.
 **DoD:** Cooldown enforced server-side regardless of client-side UI cooldown display.
 **Test cases:** Request before cooldown elapses rejected; request after elapses accepted.
+**Verified:** Split into pure `src/shared/Formulas/Cooldown.lua` (also reused by T-410's spirit, though T-410's actual burst-limiting needed a different, window-based tool — see RateLimiter below) + `src/server/Battlefield/Services/SpecialAttackService.lua` (`os.clock()`-based per-player cooldown, always hits with the full-circle "Slam" shape + `Constants.Combat.SpecialPoiseDamage` bonus, matching GDD's "best poise-break tool" framing). Ran the cooldown check for real via `lune`: rejected before the cooldown elapses, allowed exactly at the boundary. `Cooldown.spec.lua` mirrors this; `SpecialAttackService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-407 `UltimateGaugeService`
+#### [x] T-407 `UltimateGaugeService`
 **Depends on:** T-402
 **Description:** Tracks 0–100 gauge per player, gains on dealing/taking damage (rate constants in Constants.lua). `RequestUltimate()` only succeeds at 100, consumes to 0, applies AoE damage, `Signal UltimateUsed` for nearby-client VFX.
 **DoD:** Request below 100 rejected; successful use resets to exactly 0.
 **Test cases:** Gauge accumulation from mocked damage events sums correctly and clamps at 100; `RequestUltimate` at 99 rejected, at 100 accepted and resets to 0.
+**Verified:** Split into pure `src/shared/Formulas/UltimateGauge.lua` (accumulate + clamp, threshold check) + `src/server/Battlefield/Services/UltimateGaugeService.lua`. Rate constants live in `Constants.Combat` (`UltimateGaugeGainPerDamageDealt`/`Taken`) as the task specifies. `OnDamageDealt` is wired from `HitboxService` on every landed hit now; `OnDamageTaken` is exposed for Phase 7's enemy-attacks-player code. `UltimateUsed` fires via Knit's `:FireAll` (broadcasts to every client, not just the user) for the "nearby-client VFX" requirement. Ultimates always resolve as a full-radius hit regardless of whether `radiusOrShape` is a number or a named shape (GDD §4.3 frames them as screen-clearing; a directional cone would undercut that). Ran the gauge math for real via `lune`: accumulation sums and clamps at 100, rejected at 99, accepted at exactly 100. `UltimateGauge.spec.lua` mirrors this; `UltimateGaugeService.spec.lua` covers the reset-to-0 + Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-408 `PoiseService`
+#### [x] T-408 `PoiseService`
 **Depends on:** T-105, T-403
 **Description:** Tracks poise HP per enemy instance (Commander+ only — `poiseMax == 0` means immune/not-applicable, per T-105). Applies `poiseDamage` from hits/specials; on break, sets a `BreakWindow` flag (bonus-damage multiplier, enemy attacks disabled) for a configured duration, then auto-regenerates poise.
 **DoD:** Foot Soldiers never enter a break state (they just die through combos, per GDD §6.4).
 **Test cases:** Poise damage sums correctly across hits; break triggers exactly once at the threshold crossing (not re-triggered by further damage during the window); poise regenerates after window expiry if not re-broken; a `poiseMax == 0` enemy never produces a break event.
+**Verified:** Split into pure `src/shared/Formulas/PoiseMath.lua` + `src/server/Battlefield/Services/PoiseService.lua`, keyed by `enemyId` string (not a Roblox Instance, stays decoupled from however Phase 7 models enemies). `didBreak` is only ever true on the exact tick poise crosses from >0 to <=0 by construction — once poise is already 0, further damage calls naturally return `didBreak = false`, which is what prevents re-triggering during the break window without any extra bookkeeping. Regeneration uses a captured-window-end guard (`current.breakUntil == windowEnd`) so a fresh break during the window can't have its poise wiped by a stale, earlier regen timer. Ran the math for real via `lune`: break triggers exactly at the threshold crossing, no re-trigger once already broken, and a `poiseMax <= 0` enemy is immune and never breaks. `PoiseMath.spec.lua` mirrors this; `PoiseService.spec.lua` — unlike the other combat services, this one needs no live Player at all (keyed by enemyId, not Player), only a running Knit server — covers the full register/break/unregister cycle without the `if not player then return end` guard the others need (still a Studio/TestEZ run, per T-001's runner choice, just not gated on a spawned Character too).
 
-#### [ ] T-409 `shared/TargetSelect.lua` + `TargetLockController`
+#### [x] T-409 `shared/TargetSelect.lua` + `TargetLockController`
 **Depends on:** T-105
 **Description:** Pure function `SelectTarget(playerPosition, enemies, previousTargetId): targetId` — nearest-enemy by default, named-enemy (Mid-Boss/Final Boss) priority override. Client controller drives camera/UI only; no server authority needed here.
 **DoD:** Deterministic given the same inputs.
 **Test cases:** Nearest-enemy selection correctness; named-enemy override wins over a closer Foot Soldier; stable selection when distances tie (no flicker — deterministic tiebreak rule).
+**Verified:** `src/shared/Formulas/TargetSelect.lua` (pure, plain `{x,y,z}` positions) + `src/client/Battlefield/Controllers/TargetLockController.lua`. The client reads live enemies via a new `Enemy` CollectionService tag (`Constants.Tags.Enemy`/`EnemyId`/`EnemyTier` — a script↔script contract, not a Studio placement task, since Phase 7's EnemySpawnService will tag enemies it spawns at runtime) rather than any privileged server channel — enemy Models already replicate to the client normally. `previousTargetId` biases toward keeping the current lock when it's still tied for nearest, avoiding flicker; ties otherwise break deterministically by id string. Zero-dependency module, ran for real via `lune`: nearest-enemy selection, named-enemy priority override beating a closer Foot Soldier, and the previous-target stability rule all genuinely executed and passed. `TargetSelect.spec.lua` mirrors this for TestEZ; the controller itself is manual/visual (no camera/UI work exists yet to test against — that's Phase 6/11).
 
-#### [ ] T-410 Combat rate-limiting / anti-exploit
+#### [x] T-410 Combat rate-limiting / anti-exploit
 **Depends on:** T-402, T-406, T-407
 **Description:** Server rejects and logs impossible state transitions (e.g., attack while `Staggered`) and rate-limits `RequestAttack`/`RequestUltimate` per player (max N per second).
 **DoD:** A scripted burst above the cap is rejected past the Nth call within the window; legitimate play (below cap) unaffected.
 **Test cases:** Burst-under-cap allowed; burst-over-cap rejected past threshold; state-transition table exhaustively tested (every `(currentState, action)` pair has a defined allow/reject outcome — no undefined transitions).
+**Verified:** Not a separate service — woven directly into T-402/T-407 as the task's own framing implies (it depends on both rather than standing alone). `src/shared/Formulas/RateLimiter.lua` (pure fixed-window limiter, mutates a plain per-player timestamp array) is applied in `CombatService:HandleAttackRequest` and `UltimateGaugeService:HandleUltimateRequest`, both using `Constants.Combat.RateLimitMaxPerSecond`/`RateLimitWindowSeconds`. Rejected state transitions are `warn()`-logged in `CombatService:TryTransition`. The exhaustive state-transition table is `CombatStateMachine`'s own test (T-402) — 4 states × 4 actions, every pair asserted to have a defined allow/reject outcome. Ran the rate limiter for real via `lune`: a burst under the cap is fully allowed, one more within the same window is rejected, and it opens back up once the window ages out.
 
 ---
 

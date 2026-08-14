@@ -36,6 +36,12 @@ Constants.Tags = {
 	MidBossSpawn = "MidBossSpawn",
 	FinalBossSpawn = "FinalBossSpawn",
 	FinalBossArenaGate = "FinalBossArenaGate",
+
+	-- Script <-> script contract (not a Studio placement task): applied at
+	-- runtime by Phase 7's EnemySpawnService to every enemy Model it spawns,
+	-- so client-side systems (T-409 TargetLockController) can find live
+	-- enemies via CollectionService without a privileged server data channel.
+	Enemy = "Enemy",
 }
 
 -- Instance:GetAttribute() keys used alongside the tags above.
@@ -48,6 +54,33 @@ Constants.Attributes = {
 	ObjectiveId = "ObjectiveId",
 	ObjectiveType = "ObjectiveType",
 	MidBossId = "MidBossId",
+
+	-- Paired with Tags.Enemy.
+	EnemyId = "EnemyId",
+	EnemyTier = "EnemyTier",
+}
+
+-- Combat tuning constants (Phase 4). Exact values are a balancing-pass
+-- concern like XPCurve/StatMath — these are reasonable placeholders.
+Constants.Combat = {
+	InputDebounceSeconds = 0.05,
+	RecoveryWindowSeconds = 1.5,
+
+	DashSpeed = 50,
+	DashIFrameSeconds = 0.3,
+
+	SpecialCooldownSeconds = 4,
+	SpecialDamageMult = 1.5,
+	SpecialPoiseDamage = 25,
+
+	UltimateGaugeMax = 100,
+	UltimateGaugeGainPerDamageDealt = 0.5,
+	UltimateGaugeGainPerDamageTaken = 1.0,
+
+	PoiseBreakWindowSeconds = 3,
+
+	RateLimitMaxPerSecond = 10,
+	RateLimitWindowSeconds = 1,
 }
 
 -- Filled in by T-1402 once S-001 creates the real Lobby/Battlefield places.
