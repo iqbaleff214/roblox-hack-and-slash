@@ -74,67 +74,77 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 1 — Shared Data Definitions
 
-#### [ ] T-101 `ItemDefinitions.lua` (accessories)
+#### [x] T-101 `ItemDefinitions.lua` (accessories)
 **Depends on:** T-004
 **Description:** Catalog table for Head/Body/Arm/Leg accessories: `id`, `slot`, `rarity`, `statBonus`, `cosmeticOnly`, `price` (currency+amount), `meshAssetId` (placeholder until S-103).
 **DoD:** Every entry validates against `Types.Item`.
 **Test cases:** Validate full catalog array against `Types.Item` (T-004); assert no duplicate `id`s; assert every `slot` is one of `Head|Body|Arm|Leg`.
+**Verified:** `src/shared/Data/ItemDefinitions.lua` — 12 entries (3 per slot: Common/Rare stat-affecting priced in SoftCurrency, one PremiumCurrency cosmetic-only per slot, per the GDD §9.5 split). `ItemDefinitions.spec.lua` covers all four test cases; lint-clean, both places build.
 
-#### [ ] T-102 `WeaponDefinitions.lua`
+#### [x] T-102 `WeaponDefinitions.lua`
 **Depends on:** T-004
 **Description:** `id`, `name`, `comboTreeId` (→ T-104), `baseDamage`, `rarity`, `animationIds` placeholder (filled by S-102), `price`.
 **DoD:** Validates against `Types`; every `comboTreeId` referenced exists once T-104 lands (cross-check test added there).
 **Test cases:** No duplicate ids; all required fields present.
+**Verified:** `src/shared/Data/WeaponDefinitions.lua` — the six GDD §4.2 weapon types (Katana, Yari, Naginata, Twin Blades, Fists, Bow), each with a matching `ComboTrees` entry (T-104). Added `Types.Weapon` to `Types.lua` for this (Phase 0 explicitly left it as a stub to extend). `WeaponDefinitions.spec.lua` covers all cases; lint-clean.
 
-#### [ ] T-103 `UltimateDefinitions.lua`
+#### [x] T-103 `UltimateDefinitions.lua`
 **Depends on:** T-004
 **Description:** `id`, `name`, `damage`, `radiusOrShape`, `vfxAssetId` placeholder (S-104), `price`.
 **DoD:** Validates against `Types`.
 **Test cases:** No duplicate ids.
+**Verified:** `src/shared/Data/UltimateDefinitions.lua` — 3 Ultimates (GDD §4.3). Added `Types.Ultimate` to `Types.lua` (`radiusOrShape` typed as `t.union(t.number, t.string)` since entries use either a plain radius or a named shape). `UltimateDefinitions.spec.lua` covers both cases; lint-clean.
 
-#### [ ] T-104 `ComboTrees.lua`
+#### [x] T-104 `ComboTrees.lua`
 **Depends on:** T-102
 **Description:** Per weapon, a node graph: each node has `{light=nextNodeId|nil, heavy=nextNodeId|nil, damageMult, poiseDamage, hitboxShape, isFinisher}`. Root node is the neutral/idle state. Must produce the branching described in GDD §6.4 (L-L-L vs L-L-H vs L-H yield different finishers).
 **DoD:** Every `WeaponDefinitions.comboTreeId` has a matching tree; every tree has exactly one root; every `light`/`heavy` reference points at a node that exists in the same tree.
 **Test cases:**
 - Structural: no dangling node references, no orphaned nodes (unreachable from root), every tree has ≥1 `isFinisher` node.
 - Branching: for a sample weapon, assert `L,L,L` → finisher A, `L,L,H` → finisher B, `L,H` → finisher C are three distinct node ids.
+**Verified:** `src/shared/Data/ComboTrees.lua` — one tree per weapon via a shared `buildComboTree` generator (7 nodes: Root, L1, L2, L3-finisher, H0/H1/H2-finishers), giving 4 distinct finishers per weapon (H alone, L-H, L-L-H, L-L-L). This module has zero Roblox-API requires, so — unlike everything gated on Studio — I actually ran its logic for real via `lune`, not just lint: structural checks (no dangling refs, no orphans, ≥1 finisher) and the Katana branching walk all genuinely executed and passed for all six weapons. `ComboTrees.spec.lua` mirrors the same assertions for the Studio/TestEZ run.
 
-#### [ ] T-105 `EnemyDefinitions.lua`
+#### [x] T-105 `EnemyDefinitions.lua`
 **Depends on:** T-004
 **Description:** One entry per Foot Soldier variant (Swordsman, Spearman, Shield Bearer, Rock/Javelin Thrower, Bomber, Swinger/Berserker, Treasure Carrier — GDD §7.1), plus Commander, and per-map Mid-Boss/Final Boss entries. Fields: `id`, `tier` (`FootSoldier|Commander|MidBoss|FinalBoss`), `hp`, `damage`, `poiseMax` (0 for Foot Soldiers), `behaviorModule` (string name resolved to `src/server/Services/EnemyBehaviors/<name>.lua`), `lootTableId`, `modelAssetId` placeholder (S-707/S-708).
 **DoD:** Validates against `Types.EnemyDefinition`; every `behaviorModule` string has a matching file once Phase 7 lands (cross-check test added there).
 **Test cases:** No duplicate ids; `poiseMax == 0` iff `tier == "FootSoldier"`; every `tier` is one of the four valid values.
+**Verified:** `src/shared/Data/EnemyDefinitions.lua` — 12 entries: all 7 Foot Soldier variants + Commander + the first map's 2 Mid-Bosses (Matsudaira Motoyasu, Iio Michihiro) + Final Boss (Imagawa Yoshimoto — Battle of Okehazama, tying the Basara inspiration in directly). Mid-Boss/Final Boss entries point at the shared `MidBossController`/`FinalBossController` (T-706/707 are one generic controller each, not per-boss files) rather than a unique `behaviorModule` per boss. `EnemyDefinitions.spec.lua` covers all three required cases plus a bonus lootTableId↔RewardTables cross-check; lint-clean.
 
-#### [ ] T-106 `MapDefinitions.lua`
+#### [x] T-106 `MapDefinitions.lua`
 **Depends on:** T-004, T-105
 **Description:** `id`, `displayName`, `recommendedLevel`, `mainRewardItemId` (→ T-101/102/103 catalog), `waveConfig` (`{spawnGroupId, enemyId, count, delaySeconds}[]`), `objectiveList`, `midBossIds`, `finalBossId`, `battlefieldPlaceId` placeholder (T-1402).
 **DoD:** Every `waveConfig.enemyId` and `midBossIds`/`finalBossId` exists in `EnemyDefinitions`; every `mainRewardItemId` exists in some item catalog.
 **Test cases:** Cross-reference integrity checks listed in DoD, run as TestEZ assertions over the full table.
+**Verified:** `src/shared/Data/MapDefinitions.lua` — dict keyed by map id (not an array, since T-701 looks these up as `MapDefinitions[mapId]`), one sample map ("Okehazama") with 3 spawn-group camps across all 7 Foot Soldier variants + Commander, 3 capture objectives, both Mid-Bosses, the Final Boss, and `mainRewardItemId = "OniMenpo"`. `MapDefinitions.spec.lua` runs every cross-reference check in the DoD; lint-clean.
 
-#### [ ] T-107 `RewardTables.lua`
+#### [x] T-107 `RewardTables.lua`
 **Depends on:** T-004, T-101/102/103
 **Description:** Weighted loot tables per source (`FootSoldier`, `Commander`, `MidBoss`, `FinalBoss`, `DestructibleBox`): currency ranges + rarity roll weights, referencing real item ids.
 **DoD:** All weights sum to 1 (or a documented total) per table; all referenced item ids exist.
 **Test cases:** Weight-sum assertion per table; statistical roll test (10k samples) lands within tolerance of expected distribution.
+**Verified:** `src/shared/Data/RewardTables.lua` — 5 tables, weights summing to 1.0 each (this module has no Roblox-API requires, so I ran the weight-sum check for real via `lune`, not just lint — genuinely caught that floating-point sums land at `0.9999999999999999`, confirming the epsilon-tolerance test design is necessary, not just defensive). Added `src/shared/Formulas/WeightedRandom.lua` (pure, deterministic-by-injected-roll) to make the "statistical roll test" in the DoD actually implementable — reused by `RewardTables.spec.lua`'s 10k-sample test and will be reused again by T-708/T-901. MidBoss/FinalBoss tables have no `Nothing` entry (guaranteed drop, GDD §8.1); DestructibleBox has no `Nothing` entry either (always yields one of its four kinds, GDD §6.3) — both asserted explicitly.
 
-#### [ ] T-108 `XPCurve.lua`
+#### [x] T-108 `XPCurve.lua`
 **Depends on:** T-004
 **Description:** Pure functions `XPForLevel(level): number` and `LevelForXP(xp): number`, diminishing-return curve (GDD §3.1).
 **DoD:** Monotonically increasing; round-trip stable.
 **Test cases:** `LevelForXP(XPForLevel(n)) == n` for a range of `n`; `XPForLevel` strictly increasing; `LevelForXP(0) == 1`.
+**Verified:** `src/shared/Formulas/XPCurve.lua` — quadratic cumulative-XP curve (`50 * (level-1) * level`), closed-form inverse with a float-error correction loop so the round-trip is exact. Zero Roblox-API requires, so I actually ran it via `lune`: strict monotonicity and exact round-trip verified for real over levels 1–200 (not just linted). Exact tuning constant is left for a later balancing pass, as already noted in TASKS.md's own GDD discussion.
 
-#### [ ] T-109 `QuestDefinitions.lua`
+#### [x] T-109 `QuestDefinitions.lua`
 **Depends on:** T-004
 **Description:** Daily/weekly templates: `id`, `cadence` (`Daily|Weekly`), `goalType` (`DefeatEnemyTier|ClearMap|...`), `targetCount`, `rewards`.
 **DoD:** Validates against `Types`.
 **Test cases:** No duplicate ids; `cadence` is one of two valid values.
+**Verified:** `src/shared/Data/QuestDefinitions.lua` — 5 templates (3 Daily, 2 Weekly) covering both `goalType`s named in the GDD (`ClearMap`, `DefeatEnemyTier`). Validates against the existing `Types.QuestDefinition` (T-004). `QuestDefinitions.spec.lua` covers all cases; lint-clean.
 
-#### [ ] T-110 `ProductCatalog.lua`
+#### [x] T-110 `ProductCatalog.lua`
 **Depends on:** T-004
 **Description:** Internal SKU keys → `{type = "DevProduct"|"GamePass", robloxId = nil, grants = {...}, cosmeticOnly = boolean}`. `robloxId` filled in by T-1401 once S-1001/S-1002 create the real products.
 **DoD:** Every entry has `cosmeticOnly` explicitly set (no implicit default) — this field is load-bearing for T-1004's guardrail test.
 **Test cases:** Every entry has `cosmeticOnly` as an explicit boolean (not nil).
+**Verified:** `src/shared/Data/ProductCatalog.lua` — 10 SKUs covering every GDD §9 category (3 currency bundles, 1 cosmetic bundle, 1 loadout preset slot, 4 Game Passes, 1 seasonal Battle Pass premium track), dict keyed by SKU. Added `Types.ProductCatalogEntry` to `Types.lua`. Every `robloxId` is `nil` (correct — filled by T-1401) and every `cosmeticOnly` is an explicit boolean, asserted in `ProductCatalog.spec.lua`.
 
 ---
 

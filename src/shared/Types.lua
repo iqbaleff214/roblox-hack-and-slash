@@ -42,16 +42,18 @@ Types.Profile = t.strict(t.strictInterface({
 	Settings = t.table,
 }))
 
+local priceShape = t.strictInterface({
+	currency = t.string,
+	amount = t.number,
+})
+
 Types.Item = t.strict(t.strictInterface({
 	id = t.string,
 	slot = t.literal("Head", "Body", "Arm", "Leg"),
 	rarity = t.string,
 	statBonus = t.number,
 	cosmeticOnly = t.boolean,
-	price = t.strictInterface({
-		currency = t.string,
-		amount = t.number,
-	}),
+	price = priceShape,
 	meshAssetId = t.optional(t.string),
 }))
 
@@ -84,6 +86,34 @@ Types.QuestDefinition = t.strict(t.strictInterface({
 	goalType = t.string,
 	targetCount = t.integer,
 	rewards = t.table,
+}))
+
+-- Added in Phase 1 (T-102/T-103/T-110) — see this file's header note: stubbed in
+-- Phase 0, extended here as the catalogs that need them get filled in.
+Types.Weapon = t.strict(t.strictInterface({
+	id = t.string,
+	name = t.string,
+	comboTreeId = t.string,
+	baseDamage = t.number,
+	rarity = t.string,
+	animationIds = t.table,
+	price = priceShape,
+}))
+
+Types.Ultimate = t.strict(t.strictInterface({
+	id = t.string,
+	name = t.string,
+	damage = t.number,
+	radiusOrShape = t.union(t.number, t.string),
+	vfxAssetId = t.optional(t.string),
+	price = priceShape,
+}))
+
+Types.ProductCatalogEntry = t.strict(t.strictInterface({
+	type = t.literal("DevProduct", "GamePass"),
+	robloxId = t.optional(t.number),
+	grants = t.table,
+	cosmeticOnly = t.boolean,
 }))
 
 return Types
