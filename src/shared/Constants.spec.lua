@@ -140,6 +140,31 @@ return function()
 		end)
 	end)
 
+	describe("Constants.EnemyRewards", function()
+		it("defines positive xp/currency for FootSoldier, Commander, MidBoss (not FinalBoss)", function()
+			for _, tier in { "FootSoldier", "Commander", "MidBoss" } do
+				expect(Constants.EnemyRewards[tier].xp > 0).to.equal(true)
+				expect(Constants.EnemyRewards[tier].currency > 0).to.equal(true)
+			end
+			expect(Constants.EnemyRewards.FinalBoss).to.equal(nil)
+		end)
+	end)
+
+	describe("Constants.BattlePass", function()
+		it("defines a non-empty CurrentSeasonId and positive XP tuning", function()
+			expect(Constants.BattlePass.CurrentSeasonId).to.be.a("string")
+			expect(#Constants.BattlePass.CurrentSeasonId > 0).to.equal(true)
+			expect(Constants.BattlePass.XPPerQuestCompletion > 0).to.equal(true)
+			expect(Constants.BattlePass.XPPerMapClear > 0).to.equal(true)
+		end)
+
+		it("CurrentSeasonId matches a real ProductCatalog premium-track SKU", function()
+			local ProductCatalog = require(ReplicatedStorage.Shared.Data.ProductCatalog)
+			local key = "BattlePassPremium_" .. Constants.BattlePass.CurrentSeasonId
+			expect(ProductCatalog[key]).to.be.ok()
+		end)
+	end)
+
 	describe("Constants.PlaceIds", function()
 		it("stubs Lobby and Battlefield as nil until T-1402 fills them in", function()
 			expect(Constants.PlaceIds.Lobby).to.equal(nil)

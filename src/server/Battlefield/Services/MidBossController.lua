@@ -52,8 +52,14 @@ local MidBossController = Knit.CreateService({
 	},
 })
 
--- Server-internal — ObjectiveService (T-709) grants the side-objective
--- reward on this, not before.
+-- Server-internal. Fires (definitionId, tier, damageContributions:
+-- {[Player]: number}) — Phase 9's `EnemyRewardService` (T-901) splits the
+-- flat per-kill XP/currency proportionally from this. GDD §7.3's "may unlock
+-- a side objective reward or shortcut" on Mid-Boss defeat isn't wired to
+-- `ObjectiveService` yet — no per-map side-objective data exists to unlock
+-- (Okehazama's `objectiveList`, T-106, only has the three required camp
+-- captures) — documented here as a real gap rather than silently claimed
+-- done, since a future map with side objectives would connect here.
 MidBossController.Defeated = Signal.new()
 
 local PoiseService
@@ -121,7 +127,7 @@ local function handleDeath(instance: EnemyInstance)
 	instance.model:Destroy()
 
 	MidBossController.Client.MidBossDefeated:FireAll(instance.definitionId)
-	MidBossController.Defeated:Fire(instance.definitionId, instance.id, killer)
+	MidBossController.Defeated:Fire(instance.definitionId, instance.tier, instance.custom.damageContributions or {})
 end
 
 local function spawnMidBoss(midBossId: string, spawnCFrame: CFrame)
@@ -160,6 +166,12 @@ local function spawnMidBoss(midBossId: string, spawnCFrame: CFrame)
 			instance.health = math.max(0, instance.health - amount)
 			if attacker then
 				instance.custom.lastDamager = attacker
+				local contributions = instance.custom.damageContributions :: { [Player]: number }?
+				if not contributions then
+					contributions = {}
+					instance.custom.damageContributions = contributions
+				end
+				contributions[attacker] = (contributions[attacker] or 0) + amount
 			end
 			if instance.health <= 0 then
 				handleDeath(instance)

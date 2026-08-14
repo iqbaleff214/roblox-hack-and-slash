@@ -19,6 +19,10 @@
 	`DestructibleBoxService:TryBreakNear` (T-708) — box-breaking "folds into
 	normal combo flow" (GDD §6.3) by riding the same swing resolution as
 	enemy damage, not a separate hitbox pass.
+
+	Every successfully-applied hit also records one combo hit on
+	`RunStatsService` (Phase 9) — the party-wide `comboCount` input to
+	`RankFormula`'s (T-902) map-clear rank grading.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -36,6 +40,7 @@ local HitboxService = Knit.CreateService({
 local PoiseService
 local UltimateGaugeService
 local DestructibleBoxService
+local RunStatsService
 
 local function characterOriginAndFacing(player: Player): (HitboxGeometry.Position?, HitboxGeometry.Position?)
 	local character = player.Character
@@ -104,6 +109,7 @@ function HitboxService:ApplyDamageToTargets(
 					PoiseService:ApplyPoiseDamage(enemyId, poiseDamage)
 				end
 				UltimateGaugeService:OnDamageDealt(player, damage)
+				RunStatsService:RecordHit() -- T-902: one combo hit landed, party-wide count
 			end
 		end
 	end
@@ -118,6 +124,7 @@ function HitboxService:KnitInit()
 	PoiseService = Knit.GetService("PoiseService")
 	UltimateGaugeService = Knit.GetService("UltimateGaugeService")
 	DestructibleBoxService = Knit.GetService("DestructibleBoxService")
+	RunStatsService = Knit.GetService("RunStatsService")
 end
 
 return HitboxService

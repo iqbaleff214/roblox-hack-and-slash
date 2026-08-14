@@ -15,8 +15,8 @@ return function()
 			local MapClearService = Knit.GetService("MapClearService")
 
 			expect(function()
-				MapClearService:HandleFinalBossDefeated("ImagawaYoshimoto")
-				MapClearService:HandleFinalBossDefeated("ImagawaYoshimoto")
+				MapClearService:HandleFinalBossDefeated("Okehazama")
+				MapClearService:HandleFinalBossDefeated("Okehazama")
 			end).never.to.throw()
 
 			expect(MapClearService:IsSpawningHalted()).to.equal(true)

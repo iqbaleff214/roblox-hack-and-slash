@@ -91,9 +91,15 @@ function MapClearService.Client:AcknowledgeResults(_player: Player)
 end
 
 function MapClearService:KnitInit()
+	local BattlefieldBootstrap = Knit.GetService("BattlefieldBootstrap")
 	local FinalBossController = Knit.GetService("FinalBossController")
-	FinalBossController.Defeated:Connect(function(definitionId: string)
-		self:HandleFinalBossDefeated(definitionId)
+	FinalBossController.Defeated:Connect(function()
+		-- The real map id, not the boss's own `definitionId` (a past bug —
+		-- `FinalBossController.Defeated`'s first argument is the boss id,
+		-- e.g. "ImagawaYoshimoto", never the map id; `BattlefieldBootstrap`
+		-- is this server's single source of truth for which map it's hosting).
+		local mapId = BattlefieldBootstrap:GetCurrentMapId() or "Unknown"
+		self:HandleFinalBossDefeated(mapId)
 	end)
 end
 

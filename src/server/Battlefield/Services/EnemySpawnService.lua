@@ -70,8 +70,10 @@ local EnemySpawnService = Knit.CreateService({
 	Client = {},
 })
 
--- Server-internal (not networked) — Phase 9's per-kill reward hook (T-901)
--- connects here once it exists; fires (definitionId, tier, killer: Player?).
+-- Server-internal (not networked) — Phase 9's `EnemyRewardService` (T-901)
+-- connects here; fires (definitionId, tier, damageContributions: {[Player]:
+-- number}) so the reward hook can split the kill's flat XP/currency
+-- proportionally by damage dealt (co-op fairness) rather than killer-only.
 EnemySpawnService.EnemyDied = Signal.new()
 
 -- Server-internal — fires (spawnGroupId) once every enemy spawned under that
@@ -182,7 +184,7 @@ function EnemySpawnService:HandleEnemyDeath(instance: EnemyInstance)
 		end
 	end
 
-	EnemySpawnService.EnemyDied:Fire(instance.definitionId, instance.tier, killer)
+	EnemySpawnService.EnemyDied:Fire(instance.definitionId, instance.tier, instance.custom.damageContributions or {})
 end
 
 function EnemySpawnService:SpawnEnemy(enemyDefId: string, spawnCFrame: CFrame, spawnGroupId: string?): EnemyInstance?
@@ -227,6 +229,12 @@ function EnemySpawnService:SpawnEnemy(enemyDefId: string, spawnCFrame: CFrame, s
 			instance.health = math.max(0, instance.health - amount)
 			if attacker then
 				instance.custom.lastDamager = attacker
+				local contributions = instance.custom.damageContributions :: { [Player]: number }?
+				if not contributions then
+					contributions = {}
+					instance.custom.damageContributions = contributions
+				end
+				contributions[attacker] = (contributions[attacker] or 0) + amount
 			end
 			if instance.health <= 0 then
 				self:HandleEnemyDeath(instance)

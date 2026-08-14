@@ -4,6 +4,11 @@
 	records. `rewards` is a plain currency/XP grant table, consumed by
 	QuestService (T-904) the same way MapClearRewardService (T-903) grants
 	its bundles.
+
+	`tier` (Phase 9 addition, `Types.QuestDefinition`): required for every
+	`DefeatEnemyTier` quest — must match a real `EnemyDefinitions.tier`
+	value, so `QuestService` knows which kills count toward it. Absent for
+	`ClearMap`, which isn't tier-specific.
 ]]
 
 local Constants = require(script.Parent.Parent.Constants)
@@ -24,6 +29,7 @@ local QuestDefinitions = {
 		goalType = "DefeatEnemyTier",
 		targetCount = 20,
 		rewards = { { currency = Soft, amount = 100 } },
+		tier = "FootSoldier",
 	},
 	{
 		id = "DailyDefeat5Commanders",
@@ -31,6 +37,7 @@ local QuestDefinitions = {
 		goalType = "DefeatEnemyTier",
 		targetCount = 5,
 		rewards = { { currency = Soft, amount = 150 } },
+		tier = "Commander",
 	},
 	{
 		id = "WeeklyClear10Maps",
@@ -45,6 +52,7 @@ local QuestDefinitions = {
 		goalType = "DefeatEnemyTier",
 		targetCount = 3,
 		rewards = { { currency = Soft, amount = 600 } },
+		tier = "MidBoss",
 	},
 }
 

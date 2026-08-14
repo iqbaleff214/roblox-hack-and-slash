@@ -56,7 +56,14 @@ local FinalBossController = Knit.CreateService({
 })
 
 -- Server-internal — MapClearService (T-710) listens for this to halt
--- spawning and start the results-screen flow.
+-- spawning and start the results-screen flow; `MapClearRewardService`
+-- (T-903) listens for the same event to compute/grant the map-clear
+-- payout. Fires (definitionId, tier, damageContributions: {[Player]:
+-- number}) for signature parity with `EnemySpawnService.EnemyDied`/
+-- `MidBossController.Defeated` — `damageContributions` isn't consumed for
+-- reward purposes here (the Final Boss's reward is the flat, party-wide
+-- map-clear bundle, not a damage-share per-kill grant, since GDD §8.1 omits
+-- Final Boss from per-enemy rewards on purpose — see `EnemyRewardService`).
 FinalBossController.Defeated = Signal.new()
 
 local PoiseService
@@ -114,7 +121,7 @@ local function handleDeath(boss: EnemyInstance)
 	boss.model:Destroy()
 
 	FinalBossController.Client.FinalBossDefeated:FireAll(boss.definitionId)
-	FinalBossController.Defeated:Fire(boss.definitionId, killer)
+	FinalBossController.Defeated:Fire(boss.definitionId, boss.tier, boss.custom.damageContributions or {})
 end
 
 local function createPlaceholderModel(instanceId: string, spawnCFrame: CFrame): (Model, BasePart)
@@ -196,6 +203,12 @@ function FinalBossController:TrySpawn(map: any)
 			newInstance.health = math.max(0, newInstance.health - amount)
 			if attacker then
 				newInstance.custom.lastDamager = attacker
+				local contributions = newInstance.custom.damageContributions :: { [Player]: number }?
+				if not contributions then
+					contributions = {}
+					newInstance.custom.damageContributions = contributions
+				end
+				contributions[attacker] = (contributions[attacker] or 0) + amount
 			end
 			if newInstance.health <= 0 then
 				handleDeath(newInstance)

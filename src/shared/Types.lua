@@ -87,6 +87,10 @@ Types.QuestDefinition = t.strict(t.strictInterface({
 	goalType = t.string,
 	targetCount = t.integer,
 	rewards = t.table,
+	-- Required for goalType == "DefeatEnemyTier" (T-904 needs to know which
+	-- EnemyDefinitions.tier a kill must match to count); absent for
+	-- "ClearMap", which doesn't target a specific tier.
+	tier = t.optional(t.string),
 }))
 
 -- Added in Phase 1 (T-102/T-103/T-110) — see this file's header note: stubbed in

@@ -129,6 +129,30 @@ Constants.Battlefield = {
 	DestructibleBoxRandomPoolFraction = 0.5,
 }
 
+-- T-901: flat per-kill XP/currency baseline per enemy tier (GDD §8.1 —
+-- "small"/"moderate"/"larger" scale up the tiers). Split proportionally by
+-- damage-contribution across every player who landed a hit (see
+-- `DamageShareReward.lua`), not killer-only, for co-op fairness. No
+-- `FinalBoss` entry on purpose — GDD §8.1 only lists Foot Soldier/Commander/
+-- Mid-Boss; the Final Boss's reward is the map-clear payout (§8.2) instead,
+-- since its death and the map clear are the same event — a separate flat
+-- per-kill grant on top would double-pay it.
+Constants.EnemyRewards = {
+	FootSoldier = { xp = 5, currency = 2 },
+	Commander = { xp = 25, currency = 10 },
+	MidBoss = { xp = 150, currency = 75 },
+}
+
+-- T-905: seasonal Battle Pass tuning. `CurrentSeasonId` must match a real
+-- `ProductCatalog` key suffix (`BattlePassPremium_<CurrentSeasonId>`, T-1005)
+-- so `BattlePassService`'s eventual real ownership check (T-1002) can look
+-- up the right product.
+Constants.BattlePass = {
+	CurrentSeasonId = "Season1",
+	XPPerQuestCompletion = 20,
+	XPPerMapClear = 50,
+}
+
 -- Filled in by T-1402 once S-001 creates the real Lobby/Battlefield places.
 Constants.PlaceIds = {
 	Lobby = nil :: number?,

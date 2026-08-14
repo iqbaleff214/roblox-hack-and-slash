@@ -13,6 +13,10 @@
 	build without inventing mechanics wholesale, so reaching 0 HP just logs
 	and stops further health-signal noise — a clear, honest extension point
 	rather than a guessed-at implementation.
+
+	Every actually-applied hit (i.e. not voided by an i-frame window) also
+	records its damage on `RunStatsService` (Phase 9) — the party-wide
+	`damageTaken` input to `RankFormula`'s (T-902) map-clear rank grading.
 ]]
 
 local Players = game:GetService("Players")
@@ -29,6 +33,7 @@ local PlayerHealthService = Knit.CreateService({
 
 local CombatService
 local StatsService
+local RunStatsService
 
 local currentHealth: { [Player]: number } = {}
 
@@ -56,8 +61,10 @@ function PlayerHealthService:ApplyEnemyDamage(player: Player, amount: number)
 	local current = self:GetHealth(player)
 	local maxHealth = getMaxHealth(player)
 	local newHealth = math.clamp(current - amount, 0, maxHealth)
+	local actualDamage = current - newHealth
 	currentHealth[player] = newHealth
 	self.Client.HealthChanged:Fire(player, newHealth, maxHealth)
+	RunStatsService:RecordDamageTaken(actualDamage) -- T-902: only damage that actually landed
 
 	if newHealth <= 0 then
 		warn(("[PlayerHealthService] %s reached 0 HP."):format(player.Name))
@@ -79,6 +86,7 @@ end
 function PlayerHealthService:KnitInit()
 	CombatService = Knit.GetService("CombatService")
 	StatsService = Knit.GetService("StatsService")
+	RunStatsService = Knit.GetService("RunStatsService")
 
 	Players.PlayerRemoving:Connect(function(player: Player)
 		currentHealth[player] = nil
