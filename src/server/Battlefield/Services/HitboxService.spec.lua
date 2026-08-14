@@ -41,5 +41,37 @@ return function()
 
 			EnemyRegistry.Unregister("HitboxSpecEnemy")
 		end)
+
+		it("consults canBeDamagedFrom (ShieldBearer, T-704) and skips damage when it returns false", function()
+			local player = Players:GetPlayers()[1]
+			local character = player and player.Character
+			local rootPart = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if not player or not rootPart then
+				return -- no live player/character in this run context; covered by S-1301
+			end
+
+			local totalDamage = 0
+			local inFrontPosition = rootPart.Position + rootPart.CFrame.LookVector * 5
+			EnemyRegistry.Register({
+				id = "HitboxSpecBlocker",
+				tier = "FootSoldier",
+				poiseMax = 0,
+				position = { x = inFrontPosition.X, y = inFrontPosition.Y, z = inFrontPosition.Z },
+				takeDamage = function(amount)
+					totalDamage += amount
+				end,
+				canBeDamagedFrom = function()
+					return false -- always blocks, for this test
+				end,
+			})
+
+			local HitboxService = Knit.GetService("HitboxService")
+			local hitIds = HitboxService:ResolveAndApplyHit(player, "Arc", 25, 0)
+
+			expect(#hitIds).to.equal(1) -- still geometrically hit...
+			expect(totalDamage).to.equal(0) -- ...but damage was blocked
+
+			EnemyRegistry.Unregister("HitboxSpecBlocker")
+		end)
 	end)
 end

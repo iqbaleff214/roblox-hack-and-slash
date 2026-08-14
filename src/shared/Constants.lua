@@ -60,8 +60,6 @@ Constants.Attributes = {
 	EnemyTier = "EnemyTier",
 }
 
--- Combat tuning constants (Phase 4). Exact values are a balancing-pass
--- concern like XPCurve/StatMath — these are reasonable placeholders.
 -- Party tuning (T-604, GDD §6.1).
 Constants.Party = {
 	MaxSize = 8,
@@ -74,6 +72,8 @@ Constants.Loadout = {
 	FreePresetSlots = 1,
 }
 
+-- Combat tuning constants (Phase 4). Exact values are a balancing-pass
+-- concern like XPCurve/StatMath — these are reasonable placeholders.
 Constants.Combat = {
 	InputDebounceSeconds = 0.05,
 	RecoveryWindowSeconds = 1.5,
@@ -93,6 +93,40 @@ Constants.Combat = {
 
 	RateLimitMaxPerSecond = 10,
 	RateLimitWindowSeconds = 1,
+}
+
+-- Battlefield/enemy tuning (Phase 7).
+Constants.Battlefield = {
+	EnemyMoveSpeed = 12,
+	BaselineMeleeAttackRange = 6, -- Swordsman, ShieldBearer
+	SpearmanAttackRange = 8,
+	SwingerAttackRange = 7,
+	CommanderAttackRange = 7,
+	FootSoldierAttackCooldownSeconds = 1.5,
+
+	ThrowerRetreatThreshold = 12,
+	ThrowerFireRange = 24,
+	ThrowerFireCooldownSeconds = 2,
+
+	BomberProximityThreshold = 4,
+	BomberFuseDurationSeconds = 4,
+
+	TreasureCarrierMoveSpeed = 9,
+
+	-- T-705: Commander aura (GDD §7.2 — "damage/defense aura"; implemented
+	-- as a damage buff only, see CommanderBehavior.lua's header for why).
+	CommanderAuraRadius = 15,
+	CommanderAuraDamageMultiplier = 1.3,
+
+	-- T-706/707: boss phase thresholds (HP-fraction boundaries, descending).
+	MidBossPhaseThresholds = { 0.5 },
+	FinalBossPhaseThresholds = { 0.66, 0.33 },
+	BossAttackCooldownSeconds = 2.5,
+
+	-- T-708: fraction of `RandomPool = true` boxes selected per server
+	-- instance (rounded up, minimum 1 if any pool boxes exist) — GDD §6.3's
+	-- "a few random spawn points per playthrough," not all-or-nothing.
+	DestructibleBoxRandomPoolFraction = 0.5,
 }
 
 -- Filled in by T-1402 once S-001 creates the real Lobby/Battlefield places.

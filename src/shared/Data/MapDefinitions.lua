@@ -30,10 +30,13 @@ local MapDefinitions = {
 			{ spawnGroupId = "CampC", enemyId = "TreasureCarrier", count = 1, delaySeconds = 3 },
 			{ spawnGroupId = "CampC", enemyId = "Commander", count = 1, delaySeconds = 10 },
 		},
+		-- `required` (T-709): gates `FinalBossArenaGate` via `ObjectiveGate`.
+		-- All three camps are required here; a future map could add a
+		-- `required = false` side objective that never gates the boss.
 		objectiveList = {
-			{ id = "CaptureCampA", type = "Capture" },
-			{ id = "CaptureCampB", type = "Capture" },
-			{ id = "CaptureCampC", type = "Capture" },
+			{ id = "CaptureCampA", type = "Capture", required = true },
+			{ id = "CaptureCampB", type = "Capture", required = true },
+			{ id = "CaptureCampC", type = "Capture", required = true },
 		},
 		midBossIds = { "MatsudairaMotoyasu", "IioMichihiro" },
 		finalBossId = "ImagawaYoshimoto",

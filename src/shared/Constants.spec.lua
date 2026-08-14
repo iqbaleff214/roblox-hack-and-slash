@@ -107,6 +107,39 @@ return function()
 		end
 	end)
 
+	describe("Constants.Battlefield", function()
+		local expectedNumberKeys = {
+			"EnemyMoveSpeed",
+			"BaselineMeleeAttackRange",
+			"SpearmanAttackRange",
+			"SwingerAttackRange",
+			"CommanderAttackRange",
+			"FootSoldierAttackCooldownSeconds",
+			"ThrowerRetreatThreshold",
+			"ThrowerFireRange",
+			"ThrowerFireCooldownSeconds",
+			"BomberProximityThreshold",
+			"BomberFuseDurationSeconds",
+			"TreasureCarrierMoveSpeed",
+			"CommanderAuraRadius",
+			"CommanderAuraDamageMultiplier",
+			"BossAttackCooldownSeconds",
+			"DestructibleBoxRandomPoolFraction",
+		}
+
+		for _, key in expectedNumberKeys do
+			it(("defines a positive number for %s"):format(key), function()
+				expect(Constants.Battlefield[key]).to.be.a("number")
+				expect(Constants.Battlefield[key] > 0).to.equal(true)
+			end)
+		end
+
+		it("defines non-empty, descending phase threshold lists", function()
+			expect(#Constants.Battlefield.MidBossPhaseThresholds > 0).to.equal(true)
+			expect(#Constants.Battlefield.FinalBossPhaseThresholds > 0).to.equal(true)
+		end)
+	end)
+
 	describe("Constants.PlaceIds", function()
 		it("stubs Lobby and Battlefield as nil until T-1402 fills them in", function()
 			expect(Constants.PlaceIds.Lobby).to.equal(nil)

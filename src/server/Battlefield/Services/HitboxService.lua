@@ -9,6 +9,16 @@
 	`HitboxGeometry`; live enemy data comes from the server-only
 	`EnemyRegistry` (see its own header for why that can't live in
 	`src/shared/`).
+
+	`ApplyDamageToTargets` takes the attacker's origin (Phase 7 addition) so
+	it can consult a target's optional `canBeDamagedFrom` check —
+	ShieldBearer (T-704) is the only variant that sets it, blocking frontal
+	hits.
+
+	Also forwards every hit's origin + shape radius to
+	`DestructibleBoxService:TryBreakNear` (T-708) — box-breaking "folds into
+	normal combo flow" (GDD §6.3) by riding the same swing resolution as
+	enemy damage, not a separate hitbox pass.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,6 +35,7 @@ local HitboxService = Knit.CreateService({
 
 local PoiseService
 local UltimateGaugeService
+local DestructibleBoxService
 
 local function characterOriginAndFacing(player: Player): (HitboxGeometry.Position?, HitboxGeometry.Position?)
 	local character = player.Character
@@ -58,7 +69,8 @@ function HitboxService:ResolveAndApplyHit(player: Player, hitboxShape: string, d
 	end
 
 	local hitIds = HitboxGeometry.GetHitTargets(origin, facing, hitboxShape, enemyCandidates())
-	self:ApplyDamageToTargets(player, hitIds, damage, poiseDamage)
+	self:ApplyDamageToTargets(player, hitIds, damage, poiseDamage, origin)
+	DestructibleBoxService:TryBreakNear(player, origin, self:GetShapeRadius(hitboxShape))
 	return hitIds
 end
 
@@ -70,19 +82,29 @@ function HitboxService:ResolveAndApplyRadiusHit(player: Player, radius: number, 
 	end
 
 	local hitIds = HitboxGeometry.GetHitTargetsInRadius(origin, radius, enemyCandidates())
-	self:ApplyDamageToTargets(player, hitIds, damage, 0)
+	self:ApplyDamageToTargets(player, hitIds, damage, 0, origin)
+	DestructibleBoxService:TryBreakNear(player, origin, radius)
 	return hitIds
 end
 
-function HitboxService:ApplyDamageToTargets(player: Player, hitIds: { string }, damage: number, poiseDamage: number)
+function HitboxService:ApplyDamageToTargets(
+	player: Player,
+	hitIds: { string },
+	damage: number,
+	poiseDamage: number,
+	attackerOrigin: HitboxGeometry.Position?
+)
 	for _, enemyId in hitIds do
 		local enemy = EnemyRegistry.Get(enemyId)
 		if enemy then
-			enemy.takeDamage(damage)
-			if poiseDamage > 0 then
-				PoiseService:ApplyPoiseDamage(enemyId, poiseDamage)
+			local canDamage = not enemy.canBeDamagedFrom or not attackerOrigin or enemy.canBeDamagedFrom(attackerOrigin)
+			if canDamage then
+				enemy.takeDamage(damage, player)
+				if poiseDamage > 0 then
+					PoiseService:ApplyPoiseDamage(enemyId, poiseDamage)
+				end
+				UltimateGaugeService:OnDamageDealt(player, damage)
 			end
-			UltimateGaugeService:OnDamageDealt(player, damage)
 		end
 	end
 end
@@ -95,6 +117,7 @@ end
 function HitboxService:KnitInit()
 	PoiseService = Knit.GetService("PoiseService")
 	UltimateGaugeService = Knit.GetService("UltimateGaugeService")
+	DestructibleBoxService = Knit.GetService("DestructibleBoxService")
 end
 
 return HitboxService

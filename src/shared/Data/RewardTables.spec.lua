@@ -55,6 +55,12 @@ return function()
 			end
 		end)
 
+		it("TreasureCarrier has no Nothing entry (always drops loot/currency, GDD §7.1)", function()
+			for _, entry in RewardTables.TreasureCarrier do
+				expect(entry.kind).never.to.equal("Nothing")
+			end
+		end)
+
 		it("rolls FootSoldier's table ~10k times and lands within tolerance of its weights", function()
 			local entries = RewardTables.FootSoldier
 			local counts = { Nothing = 0, Item = 0 }

@@ -51,6 +51,13 @@ function UltimateGaugeService:GetGauge(player: Player): number
 	return gauges[player] or 0
 end
 
+-- Flat gauge grant, not damage-scaled (T-708: `DestructibleBox`'s
+-- `UltimateCharge` reward kind — a pickup, not a combat event).
+function UltimateGaugeService:AddGauge(player: Player, amount: number)
+	local current = gauges[player] or 0
+	gauges[player] = UltimateGauge.Add(current, amount)
+end
+
 function UltimateGaugeService:HandleUltimateRequest(player: Player): boolean
 	local timestamps = ultimateTimestamps[player]
 	if not timestamps then

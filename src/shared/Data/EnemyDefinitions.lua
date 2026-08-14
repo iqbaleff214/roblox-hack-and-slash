@@ -6,11 +6,15 @@
 	Okehazama — see MapDefinitions.lua, T-106).
 
 	`behaviorModule` for Foot Soldiers/Commander names a per-variant file under
-	`src/server/Services/EnemyBehaviors/<name>.lua` (T-704/T-705, Phase 7 — the
-	cross-reference test that those files actually exist lives there, not
-	here). Mid-Bosses/Final Bosses share one generic controller each
-	(`MidBossController` / `FinalBossController`, T-706/T-707) driven by
-	per-boss moveset data rather than one file per boss.
+	`src/server/Battlefield/Support/EnemyBehaviors/<name>.lua` (T-704/T-705,
+	Phase 7 — the cross-reference test that those files actually exist lives
+	there, not here; note this path differs from the plain
+	`src/server/Services/EnemyBehaviors/` originally sketched in TASKS.md,
+	since enemy behavior is inherently Battlefield-only under this project's
+	actual multi-place split, decided back in T-006/Phase 0). Mid-Bosses/Final
+	Bosses share one generic controller each (`MidBossController` /
+	`FinalBossController`, T-706/T-707) driven by per-boss moveset data
+	rather than one file per boss.
 
 	`poiseMax = 0` for every Foot Soldier — they have no poise/break state and
 	just die through combos (GDD §6.4); Commander+ tiers have real poise bars.
@@ -85,7 +89,7 @@ local EnemyDefinitions = {
 		damage = 1,
 		poiseMax = 0,
 		behaviorModule = "TreasureCarrier",
-		lootTableId = "FootSoldier",
+		lootTableId = "TreasureCarrier",
 		modelAssetId = nil,
 	},
 

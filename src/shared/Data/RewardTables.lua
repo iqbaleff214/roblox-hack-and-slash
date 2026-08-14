@@ -21,6 +21,10 @@
 	FinalBoss: always rewards well, weighted toward higher-value gear.
 	DestructibleBox: always yields one of the four kinds listed in §6.3 (no
 		Nothing) — currency most common, item rarest ("low odds, jackpot feel").
+	TreasureCarrier (T-704, GDD §7.1: "drops bonus loot/currency on kill" —
+		its own table, not FootSoldier's near-empty one or DestructibleBox's
+		mixed kinds, since a Treasure Carrier kill should reliably feel worth
+		the detour): no Nothing entry, weighted Currency/Item only.
 ]]
 
 local RewardTables = {
@@ -52,6 +56,11 @@ local RewardTables = {
 		{ kind = "StaminaRestore", weight = 0.25 },
 		{ kind = "UltimateCharge", weight = 0.15, amount = { min = 5, max = 10 } },
 		{ kind = "Item", weight = 0.05, itemId = "KoteBraces" },
+	},
+
+	TreasureCarrier = {
+		{ kind = "Currency", weight = 0.60, amount = { min = 15, max = 30 } },
+		{ kind = "Item", weight = 0.40, itemId = "TekkoGauntlets" },
 	},
 }
 
