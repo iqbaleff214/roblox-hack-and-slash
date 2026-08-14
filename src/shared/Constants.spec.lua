@@ -52,6 +52,13 @@ return function()
 		end)
 	end)
 
+	describe("Constants.ProfileStoreName", function()
+		it("is a non-empty string", function()
+			expect(Constants.ProfileStoreName).to.be.a("string")
+			expect(#Constants.ProfileStoreName > 0).to.equal(true)
+		end)
+	end)
+
 	describe("Constants.PlaceIds", function()
 		it("stubs Lobby and Battlefield as nil until T-1402 fills them in", function()
 			expect(Constants.PlaceIds.Lobby).to.equal(nil)

@@ -150,35 +150,40 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 2 — Player Data & Currency
 
-#### [ ] T-201 `DataService` (ProfileService integration)
+#### [x] T-201 `DataService` (ProfileService integration)
 **Depends on:** T-004, T-101–T-110 (template references catalog defaults)
 **Description:** Wraps ProfileService. `ProfileTemplate` = `{version, Level, XP, SoftCurrency, PremiumCurrency, OwnedItems, Loadout, LoadoutPresets, QuestProgress, BattlePassProgress, MapStats, Settings}`. Handles `PlayerAdded`/`PlayerRemoving`, session-locking, release-on-leave.
 **DoD:** New player gets a profile matching `Types.Profile`; profile survives a server restart in Studio (manual verification, see S-1301); session-lock prevents double-load across servers.
 **Test cases:** Template shape matches `Types.Profile`; default values correct (Level 1, 0 XP/currency, empty inventory, default loadout).
+**Verified:** `src/shared/Data/ProfileTemplate.lua` (pure, no Player dependency) + `src/server/Shared/Services/DataService.lua` (the Knit wrapper: `ProfileStore:LoadProfileAsync(..., "ForceLoad")`, `AddUserId` for GDPR, `ProfileMigrations.Apply` then `:Reconcile()`, `ListenToRelease`/`PlayerRemoving` → `:Release()`, the standard `IsDescendantOf(Players)` guard against a player leaving mid-load). Confirmed the real ProfileService API (`GetProfileStore`/`LoadProfileAsync`/`Reconcile`/`ListenToRelease`/`AddUserId`) against the installed package source rather than assuming it. Default values deliberately deviate from "empty inventory" in the literal test-case text: the profile owns the 0-price starter weapon+ultimate (`ProfileTemplate.spec.lua` asserts this), because `Types.Loadout` requires non-optional `weaponId`/`ultimateId` — an actually-empty inventory would produce an invalid, unplayable default loadout. `ProfileTemplate.spec.lua` covers the shape/defaults (lune-verifiable parts aside, see below); `DataService.spec.lua` covers the client-safe-snapshot allowlist and, given a live player, the integration path (Studio-only, S-1301).
 
-#### [ ] T-202 `DataService.Client:GetProfile()`
+#### [x] T-202 `DataService.Client:GetProfile()`
 **Depends on:** T-201
 **Description:** Returns a client-safe snapshot (no server-internal fields like session-lock metadata).
 **DoD:** Snapshot excludes any field not needed client-side.
 **Test cases:** Snapshot never contains `_sessionLock`/version-migration internals (assert key list is a subset of an allowlist).
+**Verified:** Implemented as a deep copy of `profile.Data` (never the live reference). ProfileService keeps session-lock/meta bookkeeping in the separate `Profile.MetaData`, never in `Profile.Data`, so there's no server-internal field to leak by construction — `DataService.spec.lua` asserts the field set against an explicit allowlist as a regression guard for that invariant.
 
-#### [ ] T-203 `CurrencyService`
+#### [x] T-203 `CurrencyService`
 **Depends on:** T-201
 **Description:** `AddCurrency(player, type, amount, reason)`, `RemoveCurrency(player, type, amount)` with insufficient-funds guard, `Signal CurrencyChanged(player, type, newAmount)`.
 **DoD:** Currency never goes negative; every mutation logged with `reason` for audit.
 **Test cases:** `RemoveCurrency` beyond balance rejected, balance unchanged; `AddCurrency` then `RemoveCurrency` nets correctly; signal fires exactly once per mutation.
+**Verified:** Split into `src/shared/Formulas/CurrencyLedger.lua` (pure balance-check math, zero Roblox-API requires) + `src/server/Shared/Services/CurrencyService.lua` (thin Knit wrapper: resolves player → profile, calls the ledger, `print`-logs every mutation with its reason, fires `Client.CurrencyChanged`). No `.Client`-exposed mutation methods — currency changes are always server-initiated. Because the core logic is pure, I actually ran it for real via `lune` (not just lint): beyond-balance rejection, unchanged-balance-on-reject, exact-deduction, Add-then-Remove netting, and the never-negative guard all genuinely executed and passed. `CurrencyLedger.spec.lua` mirrors these for TestEZ; `CurrencyService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-204 `InventoryService`
+#### [x] T-204 `InventoryService`
 **Depends on:** T-201
 **Description:** `GrantItem(player, itemId)`, `HasItem(player, itemId)`, `Signal ItemGranted`.
 **DoD:** Non-stackable items can't be double-granted (idempotent).
 **Test cases:** Second `GrantItem` call for an already-owned non-stackable item is a no-op and returns `false`; `HasItem` reflects grants immediately.
+**Verified:** Split the same way as T-203: `src/shared/Formulas/InventoryLedger.lua` (pure, `OwnedItems` as a boolean set — inherently idempotent by construction) + `src/server/Shared/Services/InventoryService.lua` (thin Knit wrapper, no `.Client`-exposed `GrantItem`). Ran the ledger for real via `lune`: grant-returns-true, `Has` reflects immediately, second grant is a no-op returning `false`. `InventoryLedger.spec.lua` mirrors this for TestEZ; `InventoryService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-205 Profile versioning/migration stub
+#### [x] T-205 Profile versioning/migration stub
 **Depends on:** T-201
 **Description:** `version` field on the template + a `Migrations[version] = function(profile) ... end` table applied on load for future schema changes.
 **DoD:** Loading a `version = 0` fixture profile through the migration chain produces a current-shape profile.
 **Test cases:** Fixture-based migration test (old shape in → current shape out).
+**Verified:** `src/shared/Data/ProfileMigrations.lua` — pure, `Apply(data)` walks `data.version` forward through `Migrations[N]` until it reaches `CurrentVersion`, called by `DataService` right before `:Reconcile()`. Gave the mechanism a real (not just illustrative) `[0]` migration — backfilling `MapStats`, which v1's `ProfileTemplate` actually introduced — so the chain has a genuine, non-vacuous path to test. Zero Roblox-API requires, so I ran it for real via `lune`: a v0 fixture migrates to `CurrentVersion` with `MapStats` backfilled and untouched fields preserved, an already-current profile is a no-op, and a fixture with no registered migration for its version errors as expected. `ProfileMigrations.spec.lua` mirrors these for TestEZ.
 
 ---
 

@@ -11,6 +11,10 @@ local Constants = {}
 
 Constants.RemoteFolderName = "HackAndSlashRemotes"
 
+-- DataStore name for ProfileService (T-201). Schema changes go through
+-- ProfileMigrations.lua (T-205), not a store-name bump.
+Constants.ProfileStoreName = "PlayerProfile"
+
 Constants.Currency = {
 	Soft = "SoftCurrency",
 	Premium = "PremiumCurrency",
