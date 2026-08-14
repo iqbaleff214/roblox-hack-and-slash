@@ -15,6 +15,10 @@ Constants.RemoteFolderName = "HackAndSlashRemotes"
 -- ProfileMigrations.lua (T-205), not a store-name bump.
 Constants.ProfileStoreName = "PlayerProfile"
 
+-- Map-level gate tolerance (T-303): a player can enter down to
+-- `recommendedLevel - MapLevelTolerance`.
+Constants.MapLevelTolerance = 3
+
 Constants.Currency = {
 	Soft = "SoftCurrency",
 	Premium = "PremiumCurrency",

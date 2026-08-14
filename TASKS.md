@@ -189,23 +189,26 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 3 — Stats & Leveling
 
-#### [ ] T-301 `shared/StatMath.lua` + `StatsService`
+#### [x] T-301 `shared/StatMath.lua` + `StatsService`
 **Depends on:** T-101, T-201
 **Description:** Pure function `ComputeStats(level, equippedItemIds): Stats` (HP, Attack, Defense, Stamina, UltimateChargeRate) = base-by-level formula + sum of equipped item `statBonus`. `StatsService` wires it to a player's current profile and recomputes on level-up/loadout-change.
 **DoD:** Pure calc lives in `shared/StatMath.lua`, importable and testable with no Roblox API calls.
 **Test cases:** Known input → known output table (level X + item set Y → expected Stats); recompute triggered on `LoadoutChanged` and `LevelUp` signals (integration test/manual).
+**Verified:** `StatMath.lua` takes pre-resolved `statBonus` numbers rather than item ids (its literal signature) — resolving ids against the catalog is `StatsService`'s job, which is what actually keeps this module dependency-free and satisfies its own DoD ("no Roblox API calls") for real, not just in spirit. Per GDD §4.1, accessory bonuses apply to HP/Attack/Defense only, not Stamina/UltimateChargeRate — asserted explicitly. `StatsService` (Knit) resolves `Loadout.accessories` → statBonuses, caches per-player, recomputes on `LevelService.LevelUp` now; the `LoadoutChanged` trigger is T-505's job once `LoadoutService` exists in Phase 5. Zero-dependency module, so I ran it for real via `lune`: level-scaling and the HP/Attack/Defense-only bonus split both genuinely executed and passed. `StatMath.spec.lua` mirrors this for TestEZ; `StatsService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-302 `LevelService`
+#### [x] T-302 `LevelService`
 **Depends on:** T-108, T-203, T-301
 **Description:** `AwardXP(player, amount, source)` updates profile XP via `XPCurve`, fires `Signal LevelUp(player, newLevel)` on threshold crossing, triggers `StatsService` recompute.
 **DoD:** Level-up fires exactly once per threshold crossing, even for a single large XP award that crosses multiple levels (fires once per level gained, not once total).
 **Test cases:** XP exactly at threshold triggers level-up once, not twice; a jump spanning 3 levels fires `LevelUp` 3 times with correct intermediate levels.
+**Verified:** Same split as T-203/T-204: `src/shared/Formulas/LevelLedger.lua` (pure, wraps `XPCurve`) + `src/server/Shared/Services/LevelService.lua` (thin Knit wrapper, no `.Client`-exposed `AwardXP` — XP is always server-initiated). Two `LevelUp` signals on purpose: `Client.LevelUp` (networked, for UI) and a plain server-internal `Signal.new()` (for `StatsService` and future Phase 9 hooks to react without going through client replication) — `StatsService`'s recompute-on-level-up hook (T-301) is exactly what consumes the internal one. Ran the ledger for real via `lune`: exact-threshold award levels up exactly once, a 3-level jump fires 3 times with the correct intermediate levels (6, 7, 8), and a sub-threshold award gains nothing. `LevelLedger.spec.lua` mirrors this for TestEZ; `LevelService.spec.lua` covers the Knit-wrapper integration (Studio-only, S-1301).
 
-#### [ ] T-303 Map-level gating
+#### [x] T-303 Map-level gating
 **Depends on:** T-106, T-302
 **Description:** Pure function `IsMapUnlocked(playerLevel, map): boolean` — allow entry down to `recommendedLevel - tolerance` (tolerance constant, e.g. 3).
 **DoD:** Documented tolerance constant lives in Constants.lua.
 **Test cases:** Boundary tests at `recommendedLevel`, `recommendedLevel - tolerance`, and `recommendedLevel - tolerance - 1`.
+**Verified:** `src/shared/Formulas/MapGating.lua` — takes `tolerance` as an explicit third parameter rather than reading `Constants.MapLevelTolerance` internally, keeping the function itself fully dependency-free; `Constants.MapLevelTolerance = 3` is where the DoD's "documented tolerance constant" actually lives, and callers (T-606 PortalService, T-603 MapSelectController) pass it in. Zero-dependency module, ran for real via `lune`: unlocked exactly at `recommendedLevel`, unlocked exactly at the `recommendedLevel - tolerance` boundary, locked one level below it. `MapGating.spec.lua` mirrors this for TestEZ.
 
 ---
 

@@ -59,6 +59,13 @@ return function()
 		end)
 	end)
 
+	describe("Constants.MapLevelTolerance", function()
+		it("is a non-negative number", function()
+			expect(Constants.MapLevelTolerance).to.be.a("number")
+			expect(Constants.MapLevelTolerance >= 0).to.equal(true)
+		end)
+	end)
+
 	describe("Constants.PlaceIds", function()
 		it("stubs Lobby and Battlefield as nil until T-1402 fills them in", function()
 			expect(Constants.PlaceIds.Lobby).to.equal(nil)
