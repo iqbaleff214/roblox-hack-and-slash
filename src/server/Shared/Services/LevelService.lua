@@ -10,6 +10,10 @@
 	signal, for UI) and the plain `LevelUp` field below (server-internal
 	`Signal`, for other server Services — e.g. StatsService — to react
 	without going through client replication).
+
+	T-1002: `amount` is run through `GamePassService`'s XP Boost check +
+	`BoostMath.ApplyBoost` before the ledger ever sees it — the boost is
+	applied at this single point of grant, not as a separate untracked bonus.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Knit = require(ReplicatedStorage.Packages.Knit)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local LevelLedger = require(ReplicatedStorage.Shared.Formulas.LevelLedger)
+local BoostMath = require(ReplicatedStorage.Shared.Formulas.BoostMath)
 
 local LevelService = Knit.CreateService({
 	Name = "LevelService",
@@ -28,6 +33,7 @@ local LevelService = Knit.CreateService({
 LevelService.LevelUp = Signal.new()
 
 local DataService
+local GamePassService
 
 function LevelService:AwardXP(player: Player, amount: number, source: string)
 	local profile = DataService:GetProfile(player)
@@ -35,10 +41,13 @@ function LevelService:AwardXP(player: Player, amount: number, source: string)
 		return
 	end
 
-	local levelsGained = LevelLedger.AwardXP(profile.Data, amount)
+	local boostPercent = GamePassService:GetXPBoostPercent(player)
+	local boostedAmount = BoostMath.ApplyBoost(amount, boostPercent)
+
+	local levelsGained = LevelLedger.AwardXP(profile.Data, boostedAmount)
 	print(
 		("[LevelService] +%d XP -> %s (source: %s, new XP: %d, level: %d)"):format(
-			amount,
+			boostedAmount,
 			player.Name,
 			source,
 			profile.Data.XP,
@@ -54,6 +63,7 @@ end
 
 function LevelService:KnitInit()
 	DataService = Knit.GetService("DataService")
+	GamePassService = Knit.GetService("GamePassService")
 end
 
 return LevelService

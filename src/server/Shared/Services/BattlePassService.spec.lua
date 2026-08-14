@@ -48,5 +48,39 @@ return function()
 			expect(profile.Data.BattlePassProgress.grantedPremiumTiers[1]).to.equal(true)
 			expect(InventoryService:HasItem(player, tier1.premiumReward.itemId)).to.equal(true)
 		end)
+
+		it("CheckPremiumOwnership only grants for the current season's product id (T-1005)", function()
+			local player = Players:GetPlayers()[1]
+			if not player then
+				return
+			end
+
+			local BattlePassService = Knit.GetService("BattlePassService")
+			local GamePassService = Knit.GetService("GamePassService")
+			local DataService = Knit.GetService("DataService")
+			local Constants = require(ReplicatedStorage.Shared.Constants)
+
+			local profile = DataService:GetProfile(player)
+			profile.Data.BattlePassProgress = {
+				seasonId = Constants.BattlePass.CurrentSeasonId,
+				xp = 0,
+				premiumOwned = false,
+				grantedFreeTiers = {},
+				grantedPremiumTiers = {},
+			}
+
+			-- Owning a *different* season's pass must never unlock this one.
+			GamePassService:_SetOwnershipForTest(player, "BattlePassPremium_NotTheCurrentSeason", true)
+			BattlePassService:CheckPremiumOwnership(player)
+			expect(profile.Data.BattlePassProgress.premiumOwned).to.equal(false)
+
+			-- Owning THIS season's pass does.
+			local currentSeasonSku = "BattlePassPremium_" .. Constants.BattlePass.CurrentSeasonId
+			GamePassService:_SetOwnershipForTest(player, currentSeasonSku, true)
+			BattlePassService:CheckPremiumOwnership(player)
+			expect(profile.Data.BattlePassProgress.premiumOwned).to.equal(true)
+
+			GamePassService:_SetOwnershipForTest(player, currentSeasonSku, false)
+		end)
 	end)
 end

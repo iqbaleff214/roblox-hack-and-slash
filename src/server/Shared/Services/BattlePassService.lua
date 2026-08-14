@@ -17,13 +17,13 @@
 			grantedPremiumTiers: { [tier: number]: boolean },
 		}
 
-	`premiumOwned` is a profile-backed flag, NOT a real Robux Game Pass
-	check — `GamePassService`/`MonetizationService` (T-1002, Phase 10) don't
-	exist yet. `GrantPremium` is the forward-compatible seam T-1002 will call
-	once it's built (the same pattern as `PlayerHealthService`/`CombatService`
-	deferring T-405's i-frame check to a not-yet-built consumer back in
-	Phase 4) — documented honestly as a stub, not a real purchase-gated
-	check, rather than silently pretending this already validates ownership.
+	`premiumOwned` is a profile-backed flag, set by `GrantPremium` — which
+	T-1005 now wires to a *real* ownership check, `GamePassService:OwnsGamePass`
+	(T-1002), rather than sitting as an unconsumed stub. `GamePassService`'s
+	own ownership check still fails safe against `ProductCatalog`'s `nil`
+	`robloxId`s until T-1401, so nothing here can grant premium from an id
+	that doesn't exist yet — the seam this file exposes doesn't change,
+	only what now actually calls it.
 
 	`GrantPremium` re-evaluates already-crossed XP thresholds, not just
 	future ones — T-905's DoD: a player who already passed tier 3's XP
@@ -31,13 +31,20 @@
 	retroactively the instant `premiumOwned` flips true, not only from
 	whatever tier they're at next.
 
-	A season rollover (`profile...seasonId ~= Constants.BattlePass.CurrentSeasonId`)
-	resets `xp`/`premiumOwned`/both granted-tier sets for the new season —
-	last season's premium ownership never carries over (T-1005's "owning a
-	past season's pass doesn't unlock the current season," satisfied here
-	since `premiumOwned` always starts false for a new `seasonId`).
+	T-1005: the ownership check is always for `"BattlePassPremium_" ..
+	Constants.BattlePass.CurrentSeasonId` specifically — never a bare
+	`"BattlePassPremium"` or any other season's sku — so owning a past
+	season's Game Pass can never unlock the current season (seasonal ids are
+	distinct `ProductCatalog` products, T-1005's DoD). A season rollover
+	(`profile...seasonId ~= Constants.BattlePass.CurrentSeasonId`) also
+	resets `xp`/`premiumOwned`/both granted-tier sets for the new season, so
+	even a stale `premiumOwned = true` from a prior season's profile state
+	can't survive into the new one either way — two independent guarantees
+	of the same rule.
 ]]
 
+local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Knit = require(ReplicatedStorage.Packages.Knit)
@@ -58,6 +65,7 @@ local BattlePassService = Knit.CreateService({
 local DataService
 local CurrencyService
 local InventoryService
+local GamePassService
 
 local function tryGetService(name: string): any?
 	local ok, service = pcall(Knit.GetService, name)
@@ -106,8 +114,9 @@ function BattlePassService:AwardSeasonXP(player: Player, amount: number)
 	grantNewlyUnlockedTiers(player, profile)
 end
 
--- Server-internal only — never a `.Client` method. Forward-compatible seam
--- for T-1002's real Game Pass ownership check; see this file's header.
+-- Server-internal only — never a `.Client` method. Called once
+-- `GamePassService` confirms real ownership of the *current season's*
+-- premium sku (T-1005) — see `CheckPremiumOwnership` below.
 function BattlePassService:GrantPremium(player: Player)
 	local profile = DataService:GetProfile(player)
 	if not profile then
@@ -119,14 +128,48 @@ function BattlePassService:GrantPremium(player: Player)
 	grantNewlyUnlockedTiers(player, profile) -- retroactive grant, see header
 end
 
+-- T-1005: always checks THIS season's product id — never a bare
+-- "BattlePassPremium" or a hardcoded past season's sku.
+local function currentSeasonPremiumSku(): string
+	return "BattlePassPremium_" .. Constants.BattlePass.CurrentSeasonId
+end
+
+function BattlePassService:CheckPremiumOwnership(player: Player)
+	if GamePassService:OwnsGamePass(player, currentSeasonPremiumSku()) then
+		self:GrantPremium(player)
+	end
+end
+
+local function onPlayerAdded(player: Player)
+	while player:IsDescendantOf(Players) do
+		if DataService:GetProfile(player) then
+			BattlePassService:CheckPremiumOwnership(player)
+			return
+		end
+		task.wait(0.5)
+	end
+end
+
 function BattlePassService:KnitInit()
 	DataService = Knit.GetService("DataService")
 	CurrencyService = Knit.GetService("CurrencyService")
 	InventoryService = Knit.GetService("InventoryService")
+	GamePassService = Knit.GetService("GamePassService")
 
 	local QuestService = Knit.GetService("QuestService")
 	QuestService.QuestCompleted:Connect(function(player: Player)
 		self:AwardSeasonXP(player, Constants.BattlePass.XPPerQuestCompletion)
+	end)
+
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, player in Players:GetPlayers() do
+		task.spawn(onPlayerAdded, player)
+	end
+
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, _gamePassId: number, wasPurchased: boolean)
+		if wasPurchased then
+			self:CheckPremiumOwnership(player)
+		end
 	end)
 
 	local mapClearRewardService = tryGetService("MapClearRewardService")

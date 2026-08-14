@@ -7,6 +7,16 @@
 	(nothing to buy), then deduct currency, then grant — refunding
 	immediately if the grant somehow still failed. Lobby-only: shopping is a
 	Safe Lobby feature (GDD §5), never available in the Battlefield.
+
+	T-1003: `PurchaseProduct` is a separate path for `ProductCatalog`
+	Developer Product SKUs (Gems bundles, cosmetic bundles, loadout preset
+	slots) — real-money purchases, distinct from `PurchaseItem`'s
+	balance-deduction flow for catalog gear. Only ever opens the native
+	purchase dialog via `MonetizationService:PromptProductPurchase`; never
+	touches `CurrencyService` itself (T-1003's DoD: no client-optimistic
+	currency credit — the actual grant happens entirely inside
+	`MonetizationService:ProcessReceipt`, T-1001, driven by Roblox's own
+	server callback after a real completed transaction).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +25,7 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 local ItemDefinitions = require(ReplicatedStorage.Shared.Data.ItemDefinitions)
 local WeaponDefinitions = require(ReplicatedStorage.Shared.Data.WeaponDefinitions)
 local UltimateDefinitions = require(ReplicatedStorage.Shared.Data.UltimateDefinitions)
+local ProductCatalog = require(ReplicatedStorage.Shared.Data.ProductCatalog)
 
 local AllItemsById = {}
 for _, item in ItemDefinitions do
@@ -34,6 +45,7 @@ local ShopService = Knit.CreateService({
 
 local CurrencyService
 local InventoryService
+local MonetizationService
 
 function ShopService:GetCatalog(): { [string]: any }
 	return AllItemsById
@@ -73,9 +85,27 @@ function ShopService.Client:PurchaseItem(player: Player, itemId: string): boolea
 	return self.Server:PurchaseItem(player, itemId)
 end
 
+-- Real-money path (T-1003): opens the native purchase dialog for a
+-- `ProductCatalog` Developer Product SKU. Returns false immediately for an
+-- unknown/non-DevProduct sku; true means the prompt was shown, not that
+-- anything was granted (that's `MonetizationService:ProcessReceipt`'s job).
+function ShopService:PurchaseProduct(player: Player, sku: string): boolean
+	local product = ProductCatalog[sku]
+	if not product or product.type ~= "DevProduct" then
+		return false
+	end
+	MonetizationService:PromptProductPurchase(player, sku)
+	return true
+end
+
+function ShopService.Client:PurchaseProduct(player: Player, sku: string): boolean
+	return self.Server:PurchaseProduct(player, sku)
+end
+
 function ShopService:KnitInit()
 	CurrencyService = Knit.GetService("CurrencyService")
 	InventoryService = Knit.GetService("InventoryService")
+	MonetizationService = Knit.GetService("MonetizationService")
 end
 
 return ShopService

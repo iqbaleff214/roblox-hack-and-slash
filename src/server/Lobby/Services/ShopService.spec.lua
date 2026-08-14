@@ -57,4 +57,34 @@ return function()
 			expect(DataService.Client:GetProfile(player).SoftCurrency).to.equal(after)
 		end)
 	end)
+
+	describe("ShopService.PurchaseProduct (T-1003)", function()
+		it("rejects an unknown/non-DevProduct sku without touching CurrencyService", function()
+			local player = Players:GetPlayers()[1]
+			if not player then
+				return
+			end
+
+			local ShopService = Knit.GetService("ShopService")
+			expect(ShopService:PurchaseProduct(player, "NotARealSku")).to.equal(false)
+			expect(ShopService:PurchaseProduct(player, "XPBoostPass")).to.equal(false) -- GamePass, not DevProduct
+		end)
+
+		it("accepts a real DevProduct sku (prompts, never credits currency itself)", function()
+			local player = Players:GetPlayers()[1]
+			if not player then
+				return
+			end
+
+			local ShopService = Knit.GetService("ShopService")
+			local DataService = Knit.GetService("DataService")
+
+			local before = DataService.Client:GetProfile(player).PremiumCurrency
+			expect(ShopService:PurchaseProduct(player, "Gems100")).to.equal(true)
+			-- No robloxId yet (T-1401 pending), so the prompt itself no-ops
+			-- server-side — but the point either way is no currency credit
+			-- happens from this call.
+			expect(DataService.Client:GetProfile(player).PremiumCurrency).to.equal(before)
+		end)
+	end)
 end
