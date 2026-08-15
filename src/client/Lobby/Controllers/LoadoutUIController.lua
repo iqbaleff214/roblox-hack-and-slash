@@ -135,10 +135,12 @@ end
 
 function LoadoutUIController:KnitStart()
 	screenGui = UIBuilder.CreateScreenGui("LoadoutUI")
-	local _, content, closeButton = UIBuilder.CreatePanel(screenGui, "Loadout")
+	local panel, content, closeButton = UIBuilder.CreatePanel(screenGui, "Loadout")
 	closeButton.Activated:Connect(function()
 		self:Close()
 	end)
+
+	Knit.GetController("ResponsiveUIController"):Apply(panel) -- T-1103
 
 	local listContainer = Instance.new("Frame")
 	listContainer.Name = "ListContainer"

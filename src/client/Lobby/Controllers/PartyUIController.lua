@@ -108,10 +108,12 @@ end
 
 function PartyUIController:KnitStart()
 	screenGui = UIBuilder.CreateScreenGui("PartyUI")
-	local _, content, closeButton = UIBuilder.CreatePanel(screenGui, "Party")
+	local panel, content, closeButton = UIBuilder.CreatePanel(screenGui, "Party")
 	closeButton.Activated:Connect(function()
 		self:Close()
 	end)
+
+	Knit.GetController("ResponsiveUIController"):Apply(panel) -- T-1103
 
 	local memberContainer = Instance.new("Frame")
 	memberContainer.Name = "MemberContainer"

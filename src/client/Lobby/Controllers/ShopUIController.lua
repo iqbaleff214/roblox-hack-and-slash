@@ -1,12 +1,13 @@
 --!strict
 --[[
-	T-602 (shop half): minimal functional Shop UI (GDD §5 kiosks). Visual
-	polish is explicitly out of scope — T-1103's responsive framework and
-	S-1101/S-1102's art haven't landed; this focuses on correctness: every
-	purchase round-trips through the server, and the displayed state
-	(currency, ownership) only ever updates from server signals
-	(`CurrencyChanged`, `ItemGranted`) rather than being assumed locally —
-	satisfying T-602's "no client-optimistic desync left uncorrected" DoD.
+	T-602 (shop half): minimal functional Shop UI (GDD §5 kiosks). Themed
+	visual polish is still out of scope — S-1101/S-1102's art hasn't landed —
+	but the panel is responsively scaled via `ResponsiveUIController:Apply`
+	(T-1103) so it doesn't clip on a small phone viewport. Every purchase
+	round-trips through the server, and the displayed state (currency,
+	ownership) only ever updates from server signals (`CurrencyChanged`,
+	`ItemGranted`) rather than being assumed locally — satisfying T-602's
+	"no client-optimistic desync left uncorrected" DoD.
 
 	Opened via a ProximityPrompt attached to any `ShopKiosk`-tagged part
 	(Studio places the part in S-602; unlike portals, prompt-attachment
@@ -88,10 +89,12 @@ end
 
 function ShopUIController:KnitStart()
 	screenGui = UIBuilder.CreateScreenGui("ShopUI")
-	local _, content, closeButton = UIBuilder.CreatePanel(screenGui, "Shop")
+	local panel, content, closeButton = UIBuilder.CreatePanel(screenGui, "Shop")
 	closeButton.Activated:Connect(function()
 		self:Close()
 	end)
+
+	Knit.GetController("ResponsiveUIController"):Apply(panel) -- T-1103
 
 	currencyLabel = UIBuilder.CreateLabel(content, "", UDim2.new(1, -16, 0, 24), UDim2.fromOffset(8, 4))
 

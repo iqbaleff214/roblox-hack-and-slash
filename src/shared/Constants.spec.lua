@@ -165,6 +165,20 @@ return function()
 		end)
 	end)
 
+	describe("Constants.Platform", function()
+		it("defines all four platform strings (matching PlatformDetection.lua's Platform type values)", function()
+			for _, key in { "Desktop", "Console", "Mobile", "Tablet" } do
+				expect(Constants.Platform[key]).to.equal(key)
+			end
+		end)
+	end)
+
+	describe("Constants.UI", function()
+		it("defines a positive TouchHeavyHoldSeconds", function()
+			expect(Constants.UI.TouchHeavyHoldSeconds > 0).to.equal(true)
+		end)
+	end)
+
 	describe("Constants.PlaceIds", function()
 		it("stubs Lobby and Battlefield as nil until T-1402 fills them in", function()
 			expect(Constants.PlaceIds.Lobby).to.equal(nil)

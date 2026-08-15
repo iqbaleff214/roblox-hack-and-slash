@@ -106,10 +106,12 @@ end
 
 function MapSelectController:KnitStart()
 	screenGui = UIBuilder.CreateScreenGui("MapSelectUI")
-	local _, content, closeButton = UIBuilder.CreatePanel(screenGui, "Map Select")
+	local panel, content, closeButton = UIBuilder.CreatePanel(screenGui, "Map Select")
 	closeButton.Activated:Connect(function()
 		self:Close()
 	end)
+
+	Knit.GetController("ResponsiveUIController"):Apply(panel) -- T-1103
 
 	local tileContainer = Instance.new("Frame")
 	tileContainer.Name = "TileContainer"

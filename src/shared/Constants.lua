@@ -153,6 +153,24 @@ Constants.BattlePass = {
 	XPPerMapClear = 50,
 }
 
+-- T-1101: platform enum, string-valued (matches `PlatformDetection.Platform`)
+-- so callers get typo-safety the same way `Constants.Currency` gives
+-- `CurrencyService` callers typo-safety for "SoftCurrency"/"PremiumCurrency".
+Constants.Platform = {
+	Desktop = "Desktop",
+	Console = "Console",
+	Mobile = "Mobile",
+	Tablet = "Tablet",
+}
+
+-- Cross-file UI tuning (T-1102/T-1104): `TouchHeavyHoldSeconds` is read by
+-- `TouchControlsUIController` (tap-vs-hold on the on-screen Attack button,
+-- mirroring desktop's M1-tap/M2-hold split) and documented here rather than
+-- inline since it's the touch equivalent of a desktop input-feel constant.
+Constants.UI = {
+	TouchHeavyHoldSeconds = 0.3,
+}
+
 -- Filled in by T-1402 once S-001 creates the real Lobby/Battlefield places.
 Constants.PlaceIds = {
 	Lobby = nil :: number?,

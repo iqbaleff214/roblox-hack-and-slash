@@ -50,6 +50,8 @@ function ProgressionBoardController:KnitStart()
 	panel.BackgroundTransparency = 0.2
 	panel.Parent = screenGui
 
+	Knit.GetController("ResponsiveUIController"):Apply(panel) -- T-1103
+
 	levelLabel = UIBuilder.CreateLabel(panel, "Level 1", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 4))
 
 	local xpBarBack = Instance.new("Frame")

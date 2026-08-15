@@ -1,10 +1,21 @@
 --!strict
 --[[
-	T-401: maps M1/M2/Q/Shift/R/Tab to ability-intent signals per GDD §6.4.
-	No server calls here on purpose — just intent -> local (non-networked)
-	Signal, debounced. `CombatController` is what actually turns these into
-	server requests; gamepad/touch remapping (Phase 11, T-1102) layers on
-	top of these same signals rather than replacing them.
+	T-401 + T-1102: maps every bound input source for the six core actions
+	(GDD §6.4) to local (non-networked) intent Signals, debounced.
+	`CombatController` is what actually turns these into server requests.
+
+	T-1102 (gamepad remap): the keycode/input-type dispatch tables below are
+	built directly from `InputBindings.Desktop`/`InputBindings.Console`
+	(T-1102's own single source of truth, also what the coverage test
+	checks) rather than hand-duplicated here — a gamepad button press
+	arrives as an ordinary `KeyCode`-bearing `InputObject`
+	(`Enum.KeyCode.ButtonX` etc., `UserInputType.Gamepad1`) exactly like a
+	keyboard key, so the same `InputBegan` handler and the same six Signals
+	serve both without any gamepad-specific branching. Touch has no
+	`KeyCode`/`UserInputType` binding at all (GDD's on-screen buttons aren't
+	physical inputs) — `TouchControlsUIController` (T-1104) fires these same
+	Signals directly from `Activated` events instead of going through this
+	file.
 ]]
 
 local UserInputService = game:GetService("UserInputService")
@@ -14,6 +25,7 @@ local Knit = require(ReplicatedStorage.Packages.Knit)
 local Signal = require(ReplicatedStorage.Packages.Signal)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local InputDebounce = require(ReplicatedStorage.Shared.Formulas.InputDebounce)
+local InputBindings = require(ReplicatedStorage.Shared.Formulas.InputBindings)
 
 local InputController = Knit.CreateController({ Name = "InputController" })
 
@@ -24,44 +36,56 @@ InputController.Dash = Signal.new()
 InputController.Ultimate = Signal.new()
 InputController.TargetSwitch = Signal.new()
 
+local ACTION_SIGNALS: { [string]: any } = {
+	LightAttack = InputController.LightAttack,
+	HeavyAttack = InputController.HeavyAttack,
+	Special = InputController.Special,
+	Dash = InputController.Dash,
+	Ultimate = InputController.Ultimate,
+	TargetSwitch = InputController.TargetSwitch,
+}
+
 local lastFired: { [string]: number } = {}
 
-local function fireDebounced(signal, actionKey: string)
+local function fireDebounced(action: string)
+	local signal = ACTION_SIGNALS[action]
+	if not signal then
+		return
+	end
 	local now = os.clock()
-	if InputDebounce.ShouldFire(lastFired[actionKey], now, Constants.Combat.InputDebounceSeconds) then
-		lastFired[actionKey] = now
+	if InputDebounce.ShouldFire(lastFired[action], now, Constants.Combat.InputDebounceSeconds) then
+		lastFired[action] = now
 		signal:Fire()
 	end
 end
 
-local KEYCODE_ACTIONS: { [Enum.KeyCode]: string } = {
-	[Enum.KeyCode.Q] = "Special",
-	[Enum.KeyCode.LeftShift] = "Dash",
-	[Enum.KeyCode.RightShift] = "Dash",
-	[Enum.KeyCode.R] = "Ultimate",
-	[Enum.KeyCode.Tab] = "TargetSwitch",
-}
+local KEYCODE_ACTIONS: { [Enum.KeyCode]: string } = {}
+local INPUTTYPE_ACTIONS: { [Enum.UserInputType]: string } = {}
+
+for _, platformBindings in { InputBindings.Desktop, InputBindings.Console } do
+	for action, binding in platformBindings do
+		if binding.keyCode then
+			KEYCODE_ACTIONS[Enum.KeyCode[binding.keyCode]] = action
+		end
+		if binding.altKeyCodes then
+			for _, altKeyCode in binding.altKeyCodes do
+				KEYCODE_ACTIONS[Enum.KeyCode[altKeyCode]] = action
+			end
+		end
+		if binding.inputType then
+			INPUTTYPE_ACTIONS[Enum.UserInputType[binding.inputType]] = action
+		end
+	end
+end
 
 local function onInputBegan(input: InputObject, gameProcessedEvent: boolean)
 	if gameProcessedEvent then
 		return
 	end
 
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		fireDebounced(InputController.LightAttack, "Light")
-	elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-		fireDebounced(InputController.HeavyAttack, "Heavy")
-	else
-		local action = KEYCODE_ACTIONS[input.KeyCode]
-		if action == "Special" then
-			fireDebounced(InputController.Special, "Special")
-		elseif action == "Dash" then
-			fireDebounced(InputController.Dash, "Dash")
-		elseif action == "Ultimate" then
-			fireDebounced(InputController.Ultimate, "Ultimate")
-		elseif action == "TargetSwitch" then
-			fireDebounced(InputController.TargetSwitch, "TargetSwitch")
-		end
+	local action = INPUTTYPE_ACTIONS[input.UserInputType] or KEYCODE_ACTIONS[input.KeyCode]
+	if action then
+		fireDebounced(action)
 	end
 end
 
