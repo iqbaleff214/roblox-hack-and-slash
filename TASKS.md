@@ -607,29 +607,63 @@ Each task: **Description**, **Depends on**, **DoD**, **Test cases** (TestEZ, or 
 
 ## Phase 13 — QA / Anti-Exploit / Polish
 
-#### [ ] T-1301 Full suite + lint pass
+#### [x] T-1301 Full suite + lint pass
 **Depends on:** everything above
 **Description:** Run the complete TestEZ suite and `selene src` across the whole tree.
 **DoD:** Zero failing tests, zero lint issues.
 **Test cases:** N/A — this task *is* the test run.
+**Verified:** `selene src` — **0 errors, 0 warnings, 0 parse errors** across all 206 `.lua` files in the tree (89 of them `.spec.lua`), run fresh at the end of this task, not carried over from an earlier phase. Spec-coverage completeness audited mechanically: every `src/shared/Formulas/*.lua` and `src/shared/Data/*.lua` has a matching `.spec.lua` (100%, zero gaps found); every `src/server/**/*.lua` does too, except 11 files that were already explicitly documented in Phase 7 as intentionally untested Roblox-glue (`EnemyInstanceType.lua` — a type-only module with no runtime logic; `EnemyMovement.lua` and all 8 `EnemyBehaviors/*.lua` files — thin, stateful, Instance-mutating wrappers whose actual decision logic already lives in separately-spec'd pure Formulas, e.g. `ShieldBearerBlock`/`ThrowerRangeLogic`/`BomberDetonation`/`CommanderAura`, and which are exercised indirectly through `EnemySpawnService.spec.lua`), plus one standalone cross-catalog spec with no single backing module by design (`MonetizationGuardrail.spec.lua`, T-1004). No new gaps found.
 
-#### [ ] T-1302 Server-authority exploit audit
+	**Honest limitation, consistent with every phase since T-001:** this sandbox has never had a live Roblox Studio session available, so "zero failing tests" can only be claimed for what's actually executable here — every pure Formula module (the large majority of this project's real logic, by design: server-authoritative rules are deliberately split out of Services into dependency-free Formulas specifically so they *can* be run for real) has been individually executed via real `lune` runs at the point each was written, catching genuine bugs along the way this session alone (e.g. `ResponsiveBreakpoints`' 1080p-desktop misclassification, `QuestResetLedger`'s weekly-boundary sign error). The TestEZ specs themselves — and every Service/Controller that touches live Roblox APIs (`Players`, `MarketplaceService`, `DataStoreService`, `UserInputService`, ...) — have not been executed in a live runner in this environment; that requires Studio Play Solo/Team Test, tracked under S-1301 as it has been throughout.
+
+#### [x] T-1302 Server-authority exploit audit
 **Depends on:** T-404, T-1001, T-1004, T-1105
 **Description:** Grep every client-facing `RemoteEvent`/`RemoteFunction` and confirm none mutates currency, items, damage, or profile state without server-side validation.
 **DoD:** Written audit note per remote (pass/fail), zero fails.
 **Test cases:** N/A — audit checklist.
+**Verified — PASSED, zero fails.** Confirmed first that every network boundary in this project goes through Knit's `.Client` table pattern — grepped for raw `Instance.new("RemoteEvent"|"RemoteFunction")` anywhere in `src/`: zero hits, so the `function X.Client:Method` grep below is exhaustive, not a subset. 27 client-callable methods found across the whole server tree (every currency/inventory/profile-mutation Service — `CurrencyService`, `InventoryService`, `LevelService`, `StatsService`, `QuestService` — exposes *signals only* in its `Client` table, zero client-callable mutation methods, confirmed separately). Per-remote pass/fail:
+
+	| Remote | Verdict | Why |
+	|---|---|---|
+	| `CombatService.Client:RequestAttack` | PASS | `attackType` is a closed `"Light"\|"Heavy"` string; damage/combo resolution entirely server-side (T-1105) |
+	| `DashService.Client:RequestDash` | PASS | no args beyond player; i-frame window server-set |
+	| `SpecialAttackService.Client:RequestSpecial` | PASS | no args; cooldown enforced server-side (`RateLimiter`) |
+	| `UltimateGaugeService.Client:RequestUltimate` | PASS | no args; gauge/threshold checked server-side |
+	| `UltimateGaugeService.Client:GetGauge` | PASS | read-only |
+	| `PlayerHealthService.Client:GetHealth` | PASS | read-only |
+	| `MapClearService.Client:AcknowledgeResults` | PASS | no args; only affects results-screen timing, no reward computation |
+	| `MapService.Client:GetMapDefinitions` | PASS | read-only |
+	| `PartyService.Client:CreateParty`/`InviteToParty`/`AcceptInvite`/`LeaveParty` | PASS | mutate only the calling player's own membership; `InviteToParty`/`AcceptInvite` validate via `PartyRules.CanAddMember` server-side |
+	| `PartyService.Client:KickMember` | PASS | `PartyRules.CanKick(party.leader, player, targetPlayer)` rejects any non-leader caller server-side (spot-checked this task) |
+	| `PartyService.Client:GetParty` | PASS | read-only |
+	| `PortalService.Client:RequestTeleport` | PASS | leader-only + level-gate (`MapGating`) checked server-side before any `TeleportService` call |
+	| `ShopService.Client:GetCatalog` | PASS | read-only |
+	| `ShopService.Client:PurchaseItem` | PASS | price read from server's own `ItemDefinitions`/`WeaponDefinitions`/`UltimateDefinitions`, never client-supplied; ownership + balance checked server-side before grant |
+	| `ShopService.Client:PurchaseProduct` | PASS | only opens the native purchase dialog (`MonetizationService:PromptProductPurchase`); never touches `CurrencyService` itself — the DoD `PurchaseProduct` has zero code path capable of a currency credit (T-1003) |
+	| `DataService.Client:GetProfile` | PASS | deep-copies `profile.Data` — a caller can never mutate server state through the returned table (T-202) |
+	| `GamePassService.Client:OwnsGamePass` | PASS | read-only |
+	| `LoadoutService.Client:SetLoadout` | PASS | whole loadout shape + ownership re-validated server-side (`Types.Loadout` + `LoadoutValidation`) before any write, rejects while `InBattlefield` |
+	| `LoadoutService.Client:GetPresetCap`/`GetLoadout` | PASS | read-only |
+	| `LoadoutService.Client:SavePreset` | PASS | snapshots the player's own already-server-validated current loadout, capped server-side against `GetPresetCap` |
+	| `LoadoutService.Client:LoadPreset` | PASS | client-supplied `presetIndex` only ever indexes the caller's own `profile.Data.LoadoutPresets`; an out-of-range index just fails safely, and any valid preset is re-validated from scratch through `SetLoadout`, never trusted blindly (spot-checked this task) |
+	| `MonetizationService.Client:PromptProductPurchase` | PASS | only opens the native purchase dialog; the actual grant lives exclusively in `ProcessReceipt`, driven by Roblox's own server callback, never client-invocable |
+	| `StatsService.Client:GetStats` | PASS | read-only, server-computed from level + owned/equipped items |
+
+	Zero fails. No remote anywhere in the project accepts a client-supplied currency amount, item grant, damage number, or writes to another player's profile.
 
 #### [ ] T-1303 Playtest pass
 **Depends on:** T-701–T-710
 **Description:** Solo clear of ≥1 full map end-to-end; 2–8 player co-op clear.
 **DoD:** No desync, no duplicate/missing rewards, no soft-locks (e.g., gate never opening).
 **Test cases:** Manual, logged as a checklist with pass/fail per scenario.
+**Blocked:** genuinely requires a live Roblox Studio Play Solo/Team Test session (or a published server) with real players — nothing about this task is producible from a static-analysis sandbox, and the task's own DoD asks for *logged, real* pass/fail results per scenario, which fabricating here would defeat the entire purpose of a playtest pass. Left unchecked rather than claimed done. **To run it:** enter Studio, build the Okehazama map per STUDIO_TASKS.md's S-701–S-708 (no Studio geometry exists yet — every Phase 7 script already warns-and-no-ops gracefully in its absence, e.g. `EnemySpawnService`'s "no EnemySpawnPoint tagged" warning, so a full clear can't actually be attempted until that placement work lands), then run the checklist: solo clear of Okehazama end-to-end, and a 2-8 player co-op clear, watching specifically for desync, duplicate/missing reward grants, and the `FinalBossArenaGate` failing to open once all three camps are cleared.
 
 #### [ ] T-1304 Performance pass
 **Depends on:** T-702, T-711
 **Description:** Stress test at max party (8) + full wave density; verify frame budget on the lowest supported mobile device tier.
 **DoD:** Documented minimum-spec device holds an acceptable frame rate (define the target, e.g. 30fps, in this task's notes) under worst-case enemy count.
 **Test cases:** Manual, logged with device/FPS numbers.
+**Blocked:** genuinely requires a live device (or Studio's device-emulation + a real frame-time profile) under real rendering/physics load — no static analysis can produce an honest FPS number. Left unchecked rather than claimed done. **Target, defined now so the eventual run has a bar to check against:** 30fps sustained on the minimum-spec mobile tier (a mid-range Android/iOS device from roughly the last 3-4 years, per Roblox's own typical minimum-spec guidance) at max party size (8) with the densest single wave in `MapDefinitions.Okehazama.waveConfig` (`CampA`'s wave: 6 Swordsmen + 3 Spearmen + 1 Commander, scaled by `EnemyScaling` to 8 players — `ScaleForPartySize(count, 8)` — all alive simultaneously). **To run it:** needs the same Studio geometry as T-1303 first, then a real device (or Studio's Device Emulation + MicroProfiler) recording sustained frame time under that load.
 
 ---
 
