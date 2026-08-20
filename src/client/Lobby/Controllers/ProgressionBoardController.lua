@@ -73,29 +73,34 @@ function ProgressionBoardController:KnitStart()
 	UIBuilder.CreateLabel(panel, "Battle Pass: coming soon", UDim2.new(1, -16, 0, 20), UDim2.fromOffset(8, 66))
 
 	local DataService = Knit.GetService("DataService")
-	local profile = DataService:GetProfile()
-	if profile then
-		updateLevelAndXP(profile.Level, profile.XP)
-		updateCurrency(profile.SoftCurrency, profile.PremiumCurrency)
-	end
+    local success, profile = DataService:GetProfile():await()
+    if success and type(profile) == "table" then
+        updateLevelAndXP(profile.Level, profile.XP)
+        updateCurrency(profile.SoftCurrency, profile.PremiumCurrency)
+    end
 
 	local LevelService = Knit.GetService("LevelService")
-	LevelService.LevelUp:Connect(function(newLevel: number)
-		local currentProfile = DataService:GetProfile()
-		updateLevelAndXP(newLevel, if currentProfile then currentProfile.XP else 0)
-	end)
+    LevelService.LevelUp:Connect(function(newLevel: number)
+        local s, currentProfile = DataService:GetProfile():await()
+        if s and type(currentProfile) == "table" then
+            updateLevelAndXP(newLevel, currentProfile.XP)
+        else
+            updateLevelAndXP(newLevel, 0)
+        end
+    end)
 
 	local CurrencyService = Knit.GetService("CurrencyService")
 	CurrencyService.CurrencyChanged:Connect(function(currencyType: string, newAmount: number)
-		local currentProfile = DataService:GetProfile()
-		if not currentProfile then
-			return
-		end
-		if currencyType == Constants.Currency.Soft then
-			updateCurrency(newAmount, currentProfile.PremiumCurrency)
-		else
-			updateCurrency(currentProfile.SoftCurrency, newAmount)
-		end
+		local s, currentProfile = DataService:GetProfile():await()
+        if not s or type(currentProfile) ~= "table" then
+            return
+        end
+
+        if currencyType == Constants.Currency.Soft then
+            updateCurrency(newAmount, currentProfile.PremiumCurrency)
+        else
+            updateCurrency(currentProfile.SoftCurrency, newAmount)
+        end
 	end)
 end
 

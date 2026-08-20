@@ -173,7 +173,7 @@ Constants.UI = {
 
 -- Filled in by T-1402 once S-001 creates the real Lobby/Battlefield places.
 Constants.PlaceIds = {
-	Lobby = nil :: number?,
+	Lobby = 128334109866704,
 	Battlefield = nil :: number?,
 }
 

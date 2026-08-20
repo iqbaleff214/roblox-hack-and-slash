@@ -32,10 +32,11 @@ local function refresh()
 	local DataService = Knit.GetService("DataService")
 	local ShopService = Knit.GetService("ShopService")
 
-	local profile = DataService:GetProfile()
-	if not profile then
-		return
-	end
+    local successProfile, profile = DataService:GetProfile():await()
+    if not successProfile or not profile then
+        warn("Failed to fetch profile data.")
+        return
+    end
 
 	currencyLabel.Text = ("Soft: %d    Premium: %d"):format(profile.SoftCurrency, profile.PremiumCurrency)
 
@@ -45,7 +46,12 @@ local function refresh()
 		end
 	end
 
-	local catalog = ShopService:GetCatalog()
+	local successCatalog, catalog = ShopService:GetCatalog():await()
+    if not successCatalog or type(catalog) ~= "table" then
+        warn("Failed to fetch catalog data.")
+        return
+    end
+
 	local order = 0
 	for itemId, item in catalog do
 		order += 1
@@ -72,8 +78,16 @@ local function refresh()
 			buyButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 		else
 			buyButton.Activated:Connect(function()
-				ShopService:PurchaseItem(itemId)
-			end)
+                buyButton.Active = false 
+                buyButton.Text = "..."
+
+                ShopService:PurchaseItem(itemId):andThen(function()
+                    buyButton.Active = true
+                end):catch(function()
+                    buyButton.Active = true
+                    buyButton.Text = "Buy"
+                end)
+            end)
 		end
 	end
 end

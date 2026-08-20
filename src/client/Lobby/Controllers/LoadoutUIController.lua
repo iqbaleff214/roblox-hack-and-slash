@@ -115,8 +115,8 @@ end
 
 function LoadoutUIController:Open()
 	local DataService = Knit.GetService("DataService")
-	local profile = DataService:GetProfile()
-	if not profile then
+	local success, profile = DataService:GetProfile():await()
+	if not success or not profile then
 		return
 	end
 

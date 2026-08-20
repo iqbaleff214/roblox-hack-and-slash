@@ -28,7 +28,7 @@ local readyState: { [number]: boolean } = {} -- UserId -> local-only ready flag
 
 local function rebuildMemberList()
 	local PartyService = Knit.GetService("PartyService")
-	local party = PartyService:GetParty()
+	local success, party = PartyService:GetParty():await()
 
 	for _, child in memberListFrame:GetChildren() do
 		if not child:IsA("UIListLayout") then
@@ -36,8 +36,8 @@ local function rebuildMemberList()
 		end
 	end
 
-	local members = if party then party.members else { Players.LocalPlayer }
-	local leader = if party then party.leader else Players.LocalPlayer
+	local members = if success and party then party.members else { Players.LocalPlayer }
+    local leader = if success and party then party.leader else Players.LocalPlayer
 
 	local order = 0
 	for _, member in members do
@@ -73,8 +73,8 @@ end
 
 local function rebuildInviteList()
 	local PartyService = Knit.GetService("PartyService")
-	local party = PartyService:GetParty()
-	local members = if party then party.members else { Players.LocalPlayer }
+	local success, party = PartyService:GetParty():await()
+    local members = if success and party then party.members else { Players.LocalPlayer }
 
 	for _, child in inviteListFrame:GetChildren() do
 		if not child:IsA("UIListLayout") then
@@ -148,10 +148,11 @@ function PartyUIController:KnitStart()
 		end
 
 		local PortalService = Knit.GetService("PortalService")
-		local accepted = PortalService:RequestTeleport(mapId)
-		statusLabel.Text = if accepted
-			then "Launching..."
-			else "Couldn't launch (not party leader, or under the map's level requirement)."
+		local success, accepted = PortalService:RequestTeleport(mapId):await()
+
+        statusLabel.Text = if success and accepted
+            then "Launching..."
+            else "Couldn't launch (not party leader, or under the map's level requirement)."
 	end)
 
 	local PartyService = Knit.GetService("PartyService")
