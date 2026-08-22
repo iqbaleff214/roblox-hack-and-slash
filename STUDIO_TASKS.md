@@ -9,13 +9,13 @@ Each task: **Description**, **Depends on**, **DoD**, **Verification** (how to co
 
 ## Phase 0 — Experience Setup
 
-#### [ ] S-001 Create Experience + two Places
+#### [x] S-001 Create Experience + two Places
 **Depends on:** none
 **Description:** Create the Roblox Experience. Create two Places inside it: **Lobby** (set as the start place) and **Battlefield** (game place, shared by all maps per the multi-place architecture decision in TASKS.md).
 **DoD:** Both places exist in the Creator Dashboard; their PlaceIds are recorded and handed off to T-1402 (`Constants.lua`).
 **Verification:** Both places launchable individually from Studio's "Open in Studio" per-place picker.
 
-#### [ ] S-002 Enable Studio Access to API Services
+#### [x] S-002 Enable Studio Access to API Services
 **Depends on:** S-001
 **Description:** Game Settings → Security → enable "Studio Access to API Services" so ProfileService/DataStore calls (T-201) work while testing in Studio.
 **DoD:** Toggle enabled on both places (DataStore is only actually used from the place(s) that run `DataService` — Lobby at minimum; enable on both for safety).
