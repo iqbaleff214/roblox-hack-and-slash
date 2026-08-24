@@ -15,7 +15,7 @@ local requireAll = require(ReplicatedStorage.Shared.RequireAll)
 
 requireAll(script.Controllers)
 
-local playerScripts = Players.LocalPlayer:WaitForChild("PlayerScripts")
+local playerScripts: PlayerScripts = Players.LocalPlayer:WaitForChild("PlayerScripts") :: PlayerScripts
 local sharedClient = playerScripts:FindFirstChild("SharedClient")
 if sharedClient then
 	local sharedControllers = sharedClient:FindFirstChild("Controllers")
