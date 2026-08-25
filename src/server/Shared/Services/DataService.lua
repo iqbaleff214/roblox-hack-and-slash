@@ -30,10 +30,12 @@ local ProfileMigrations = require(ReplicatedStorage.Shared.Data.ProfileMigration
 
 local DataService = Knit.CreateService({
 	Name = "DataService",
-	Client = {},
+	Client = {
+		ProfileLoaded = Knit.CreateSignal(),
+	},
 })
 
-local profileStore = ProfileService.GetProfileStore(Constants.ProfileStoreName, ProfileTemplate)
+local profileStore = ProfileService.GetProfileStore(Constants.ProfileStoreName :: any, ProfileTemplate)
 local profiles = {} :: { [Player]: any }
 
 local function deepCopy(value: any): any
@@ -63,7 +65,7 @@ function DataService.Client:GetProfile(player: Player): { [string]: any }?
 end
 
 local function onPlayerAdded(player: Player)
-	local profile = profileStore:LoadProfileAsync("Player_" .. player.UserId, "ForceLoad")
+	local profile = profileStore:LoadProfileAsync("Player_" .. player.UserId :: any, "ForceLoad" :: any, {})
 
 	if not profile then
 		player:Kick("Failed to load your save data. Please rejoin.")
@@ -89,10 +91,17 @@ local function onPlayerAdded(player: Player)
 		Types.Profile(profile.Data)
 	end)
 	if not isValid then
-		warn(("[DataService] profile for %s failed Types.Profile validation: %s"):format(player.Name, tostring(validationError)))
+		warn(
+			("[DataService] profile for %s failed Types.Profile validation: %s"):format(
+				player.Name,
+				tostring(validationError)
+			)
+		)
 	end
 
 	profiles[player] = profile
+
+	DataService.Client.ProfileLoaded:Fire(player, deepCopy(profile.Data))
 end
 
 local function onPlayerRemoving(player: Player)

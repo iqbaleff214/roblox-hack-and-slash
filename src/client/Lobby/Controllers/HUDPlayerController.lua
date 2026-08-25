@@ -10,24 +10,39 @@ local XPCurve = require(ReplicatedStorage.Shared.Formulas.XPCurve)
 local HUDPlayerController = Knit.CreateController({ Name = "HUDPlayerController" })
 
 local levelLabel: TextLabel
+local xpPercentageLeft: UIGradient
+local xpPercentageRight: UIGradient
 
 local function updateLevelAndXP(level: number, xp: number)
 	levelLabel.Text = ("%d"):format(level)
-	print("Level and XP updated!")
+
+	local levelStartXP: number = XPCurve.XPForLevel(level)
+	local nextLevelXP: number = XPCurve.XPForLevel(level + 1)
+	local span: number = nextLevelXP - levelStartXP
+
+	local progress: number = if span > 0 then math.clamp((xp - levelStartXP) / span, 0, 1) else 1
+
+	local xpRotation: number = math.floor(progress * 360)
+	xpPercentageRight.Rotation = math.clamp(xpRotation, 0, 180)
+	xpPercentageLeft.Rotation = math.clamp(xpRotation, 180, 360)
 end
 
 function HUDPlayerController:KnitStart()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 	local levelGui: ScreenGui = playerGui:WaitForChild("LevelGui")
-
 	levelLabel = levelGui:WaitForChild("LevelFrame"):WaitForChild("LevelOfCurrentPlayer") :: TextLabel
 
+	local xpProgressFrame: Frame = levelGui:WaitForChild("LevelFrame"):WaitForChild("XPProgressFrame") :: Frame
+	xpPercentageLeft =
+		xpProgressFrame:WaitForChild("Left"):WaitForChild("Circle"):WaitForChild("UIGradient") :: UIGradient
+	xpPercentageRight =
+		xpProgressFrame:WaitForChild("Right"):WaitForChild("Circle"):WaitForChild("UIGradient") :: UIGradient
+
 	local DataService = Knit.GetService("DataService")
-	local success, profile = DataService:GetProfile():await()
-	if success and type(profile) == "table" then
+	DataService.ProfileLoaded:Connect(function(profile: any)
 		updateLevelAndXP(profile.Level, profile.XP)
-	end
+	end)
 
 	local LevelService = Knit.GetService("LevelService")
 	LevelService.LevelUp:Connect(function(newLevel: number)
