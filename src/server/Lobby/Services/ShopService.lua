@@ -47,26 +47,47 @@ local CurrencyService
 local InventoryService
 local MonetizationService
 
-function ShopService:GetCatalog(): { [string]: any }
-	return AllItemsById
+function ShopService:GetCatalog(category: string?): { [string]: any }
+	category = if category ~= nil then category:lower() else category
+
+	if category == "item" then
+		local items = {}
+		for _, item in ItemDefinitions do
+			items[item.id] = item
+		end
+		return items
+	elseif category == "weapon" then
+		local items = {}
+		for _, item in WeaponDefinitions do
+			items[item.id] = item
+		end
+		return items
+	else
+		return AllItemsById
+	end
 end
 
-function ShopService.Client:GetCatalog(): { [string]: any }
-	return self.Server:GetCatalog()
+function ShopService.Client:GetCatalog(_: Player, category: string?): { [string]: any }
+	return self.Server:GetCatalog(category)
 end
 
 function ShopService:PurchaseItem(player: Player, itemId: string): boolean
+	local ToastService = Knit.GetService("ToastService")
+
 	local item = AllItemsById[itemId]
 	if not item then
+		ToastService:Show(player, "Pembelian gagal: Uang tidak cukup!", true)
 		return false
 	end
 
 	if InventoryService:HasItem(player, itemId) then
+		ToastService:Show(player, "Pembelian gagal: Uang tidak cukup!", true)
 		return false -- already owned, nothing to buy
 	end
 
 	local removed = CurrencyService:RemoveCurrency(player, item.price.currency, item.price.amount)
 	if not removed then
+		ToastService:Show(player, "Pembelian gagal: Uang tidak cukup!", true)
 		return false -- insufficient funds; nothing deducted, nothing granted
 	end
 
@@ -77,6 +98,8 @@ function ShopService:PurchaseItem(player: Player, itemId: string): boolean
 		CurrencyService:AddCurrency(player, item.price.currency, item.price.amount, "ShopPurchaseRefund")
 		return false
 	end
+
+	ToastService:Show(player, "Pembelian berhasil!")
 
 	return true
 end

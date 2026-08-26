@@ -12,6 +12,7 @@ local HUDPlayerController = Knit.CreateController({ Name = "HUDPlayerController"
 local levelLabel: TextLabel
 local xpPercentageLeft: UIGradient
 local xpPercentageRight: UIGradient
+local currencyFrame: Frame
 
 local function updateLevelAndXP(level: number, xp: number)
 	levelLabel.Text = ("%d"):format(level)
@@ -27,13 +28,38 @@ local function updateLevelAndXP(level: number, xp: number)
 	xpPercentageLeft.Rotation = math.clamp(xpRotation, 180, 360)
 end
 
+local function updateCurrency(currencyType: string, newAmount: number)
+	local currencyMainFrame: Frame? =
+		currencyFrame:WaitForChild(currencyType .. "Frame"):WaitForChild("CurrencyContainer") :: Frame
+	if currencyMainFrame == nil then
+		return
+	end
+
+	local currency: string = if currencyType == "SoftCurrency" then "Rp" else "Ryō"
+
+	local currencyText: TextLabel = currencyMainFrame:WaitForChild("TextLabel") :: TextLabel
+	local oldAmount: number = tonumber(currencyText.Text:sub(#currency + 2)) or 0
+
+	if newAmount == oldAmount then
+		print("[Currency " .. currencyType .. "] old amount and new amount is the same, not changing anything")
+		return
+	end
+
+	currencyText.Text = currency .. " " .. tostring(newAmount)
+end
+
 function HUDPlayerController:KnitStart()
 	local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
-	local levelGui: ScreenGui = playerGui:WaitForChild("LevelGui")
-	levelLabel = levelGui:WaitForChild("LevelFrame"):WaitForChild("LevelOfCurrentPlayer") :: TextLabel
+	local hudGui: ScreenGui = playerGui:WaitForChild("HUD")
 
-	local xpProgressFrame: Frame = levelGui:WaitForChild("LevelFrame"):WaitForChild("XPProgressFrame") :: Frame
+	local levelFrame: Frame = hudGui:WaitForChild("LevelFrame") :: Frame
+	local menuBarFrame: Frame = hudGui:WaitForChild("MenuBarFrame") :: Frame
+	currencyFrame = hudGui:WaitForChild("CurrencyFrame") :: Frame
+
+	levelLabel = levelFrame:WaitForChild("LevelOfCurrentPlayer") :: TextLabel
+
+	local xpProgressFrame: Frame = levelFrame:WaitForChild("XPProgressFrame") :: Frame
 	xpPercentageLeft =
 		xpProgressFrame:WaitForChild("Left"):WaitForChild("Circle"):WaitForChild("UIGradient") :: UIGradient
 	xpPercentageRight =
@@ -42,6 +68,10 @@ function HUDPlayerController:KnitStart()
 	local DataService = Knit.GetService("DataService")
 	DataService.ProfileLoaded:Connect(function(profile: any)
 		updateLevelAndXP(profile.Level, profile.XP)
+
+		for _, value in Constants.Currency do
+			updateCurrency(value :: string, profile[value])
+		end
 	end)
 
 	local LevelService = Knit.GetService("LevelService")
@@ -53,6 +83,9 @@ function HUDPlayerController:KnitStart()
 			updateLevelAndXP(newLevel, 0)
 		end
 	end)
+
+	local CurrencyService = Knit.GetService("CurrencyService")
+	CurrencyService.CurrencyChanged:Connect(updateCurrency)
 end
 
 return HUDPlayerController
