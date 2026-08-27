@@ -10,6 +10,7 @@ local XPCurve = require(ReplicatedStorage.Shared.Formulas.XPCurve)
 local HUDPlayerController = Knit.CreateController({ Name = "HUDPlayerController" })
 
 local levelLabel: TextLabel
+local xpLabel: TextLabel
 local xpPercentageLeft: UIGradient
 local xpPercentageRight: UIGradient
 local currencyFrame: Frame
@@ -20,6 +21,8 @@ local function updateLevelAndXP(level: number, xp: number)
 	local levelStartXP: number = XPCurve.XPForLevel(level)
 	local nextLevelXP: number = XPCurve.XPForLevel(level + 1)
 	local span: number = nextLevelXP - levelStartXP
+
+	xpLabel.Text = ("%d/%d xp"):format(xp, nextLevelXP)
 
 	local progress: number = if span > 0 then math.clamp((xp - levelStartXP) / span, 0, 1) else 1
 
@@ -58,6 +61,7 @@ function HUDPlayerController:KnitStart()
 	currencyFrame = hudGui:WaitForChild("CurrencyFrame") :: Frame
 
 	levelLabel = levelFrame:WaitForChild("LevelOfCurrentPlayer") :: TextLabel
+	xpLabel = levelFrame:WaitForChild("XPProgressText") :: TextLabel
 
 	local xpProgressFrame: Frame = levelFrame:WaitForChild("XPProgressFrame") :: Frame
 	xpPercentageLeft =
