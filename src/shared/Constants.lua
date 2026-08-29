@@ -28,6 +28,7 @@ Constants.Currency = {
 Constants.Tags = {
 	MapPortal = "MapPortal",
 	ShopKiosk = "ShopKiosk",
+	ShopZone = "ShopZone",
 	LoadoutStation = "LoadoutStation",
 	EnemySpawnPoint = "EnemySpawnPoint",
 	DestructibleBox = "DestructibleBox",
